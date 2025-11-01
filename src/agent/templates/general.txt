@@ -1,0 +1,15 @@
+# General Automation Template
+## Purpose
+Transform the provided task into a deterministic workflow using only the available activities.
+
+## Structure
+1. Summarize the requested outcome.
+2. Identify required data sources and relevant tools.
+3. Sketch the control flow (conditionals, loops, retries) keeping the workflow pure.
+4. Reserve all side effects for activities with clear inputs/outputs.
+5. List observability checkpoints (log lines, summaries).
+
+## Rules
+- Never import network, filesystem, or LLM libraries in the workflow body.
+- Assume configuration arrives through the `cfg` dictionary and document each key.
+- Provide graceful handling for partial results and retries.

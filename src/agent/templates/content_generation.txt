@@ -1,0 +1,6 @@
+# Content Generation Template
+1. Capture creative brief inputs from cfg (audience, tone, format).
+2. Outline planning steps: gather reference data via activities, synthesize content deterministically.
+3. Specify post-processing actions (files.write, git commits) and where outputs live.
+4. Include quality checks: length limits, required sections, safety filters.
+5. Provide logging guidance for each major stage.

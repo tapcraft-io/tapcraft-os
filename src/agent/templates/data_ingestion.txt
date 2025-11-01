@@ -1,0 +1,6 @@
+# Data Ingestion Template
+1. Validate configuration keys: source URL/endpoints, filters, storage hints.
+2. Plan activity calls: fetch data (net.http.request or mcp.call), transform, persist via files.write.
+3. Ensure pagination or batching strategies are deterministic.
+4. Describe idempotency: include dedupe keys, checksum comparisons.
+5. Note artifacts produced (filenames, Git paths) and how they are versioned.

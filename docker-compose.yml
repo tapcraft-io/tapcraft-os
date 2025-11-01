@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+  temporal:
+    image: temporalio/auto-setup:1.21.0
+    environment:
+      - DB=sqlite
+    ports:
+      - "7233:7233"
+    healthcheck:
+      test: ["CMD", "temporal", "server", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  temporal-ui:
+    image: temporalio/ui:2.23.0
+    ports:
+      - "8080:8080"
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+    depends_on:
+      - temporal
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["poetry", "run", "uvicorn", "src.api.server:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TEMPORAL_ADDRESS=temporal:7233
+      - GIT_REMOTE_URL=${GIT_REMOTE_URL:-}
+      - TZ_DEFAULT=${TZ_DEFAULT:-UTC}
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      - temporal
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["poetry", "run", "python", "-m", "src.worker.worker"]
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TEMPORAL_ADDRESS=temporal:7233
+    volumes:
+      - .:/app
+    depends_on:
+      - temporal

@@ -1,0 +1,6 @@
+# Notification Template
+1. Capture trigger conditions and throttling settings from cfg.
+2. Describe lookup of recipients or channels (files.read, mcp.call, config).
+3. Plan message composition logic without side effects.
+4. Delegate sending to activities (net.http.request or custom connectors).
+5. Outline observability: log summaries, error handling, retries.
