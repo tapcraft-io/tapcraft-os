@@ -4,3 +4,5 @@ __pycache__/
 .env
 .poetry-cache/
 data/
+*.db
+*.db-journal

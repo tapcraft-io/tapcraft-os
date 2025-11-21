@@ -22,7 +22,26 @@ from src.services.memory_service import MemoryService
 from src.services.template_service import TemplateService
 from src.services.validation_service import ValidationService
 
+# Import database initialization
+from src.db.base import init_db
+
+# Import routers
+from src.api.routers import apps, workflows, graphs, schedules, runs
+
 app = FastAPI(title="Tapcraft OS API", version="0.1.0")
+
+# Register routers
+app.include_router(apps.router)
+app.include_router(workflows.router)
+app.include_router(graphs.router)
+app.include_router(schedules.router)
+app.include_router(runs.router)
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on startup."""
+    await init_db()
 
 
 DEFAULT_CAPABILITIES = [
