@@ -26,7 +26,7 @@ from src.services.validation_service import ValidationService
 from src.db.base import init_db
 
 # Import routers
-from src.api.routers import apps, workflows, graphs, schedules, runs
+from src.api.routers import apps, workflows, graphs, schedules, runs, agent_workflows, execution
 
 app = FastAPI(title="Tapcraft OS API", version="0.1.0")
 
@@ -36,6 +36,8 @@ app.include_router(workflows.router)
 app.include_router(graphs.router)
 app.include_router(schedules.router)
 app.include_router(runs.router)
+app.include_router(agent_workflows.router)
+app.include_router(execution.router)
 
 
 @app.on_event("startup")
