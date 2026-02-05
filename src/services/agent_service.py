@@ -68,11 +68,12 @@ class AgentService:
         self._memory_service = memory_service
         self._template_service = template_service
 
+        default_model = os.getenv("INTERNAL_ANTHROPIC_LARGE_MODEL", "claude-sonnet-4-20250514")
         self._models: Dict[str, str] = {
-            "planner": os.getenv("AGENT_PLANNER_MODEL", "gpt-4o-mini"),
-            "generator": os.getenv("AGENT_GENERATOR_MODEL", "gpt-4o"),
-            "repair": os.getenv("AGENT_REPAIR_MODEL", "gpt-4o"),
-            "tests": os.getenv("AGENT_TEST_MODEL", "gpt-4o-mini"),
+            "planner": default_model,
+            "generator": default_model,
+            "repair": default_model,
+            "tests": default_model,
         }
         self._limits = AgentLimits(
             max_tokens_plan=int(os.getenv("AGENT_MAX_TOKENS_PLAN", "1500")),

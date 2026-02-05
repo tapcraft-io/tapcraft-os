@@ -26,7 +26,7 @@ const AgentConsole = () => {
         task_text: task,
         capabilities
       });
-      return data as PlanDoc;
+      return data.plan as PlanDoc;
     },
     onSuccess: (next) => setPlan(next)
   });
@@ -34,9 +34,11 @@ const AgentConsole = () => {
   const generateMutation = useMutation({
     mutationFn: async () => {
       const { data } = await client.post('/agent/generate', {
-        task_text: task,
-        plan,
-        capabilities
+        prompt: {
+          task_text: task,
+          capabilities
+        },
+        plan
       });
       return data as AgentGeneration;
     },
