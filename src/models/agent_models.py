@@ -164,4 +164,41 @@ BUILT_IN_PRIMITIVES = [
         },
         example_config={"message": "Processing started", "level": "info"},
     ),
+    PrimitiveInfo(
+        type="browse",
+        name="Browse Page",
+        description="Navigate to a URL and perform browser actions (click, type, verify content, take screenshots). Uses an AI agent with Playwright for intelligent web interaction.",
+        config_schema={
+            "type": "object",
+            "properties": {
+                "url": {"type": "string", "description": "URL to navigate to"},
+                "actions": {
+                    "type": "array",
+                    "description": "List of browser actions to perform",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["navigate", "click", "type", "verify", "screenshot", "evaluate"],
+                            },
+                            "selector": {"type": "string", "description": "CSS selector for target element"},
+                            "value": {"type": "string", "description": "Value to type or verify"},
+                            "name": {"type": "string", "description": "Screenshot filename"},
+                            "script": {"type": "string", "description": "JavaScript to evaluate"},
+                        },
+                        "required": ["type"],
+                    },
+                },
+            },
+            "required": ["url", "actions"],
+        },
+        example_config={
+            "url": "https://example.com/status",
+            "actions": [
+                {"type": "verify", "selector": ".status-badge", "value": "Active"},
+                {"type": "screenshot", "name": "status-check.png"},
+            ],
+        },
+    ),
 ]

@@ -1,53 +1,31 @@
-"""LLM-based workflow graph generator using pydantic-ai."""
+"""LLM-based workflow graph generator using GitHub Copilot SDK."""
 
-import os
+from __future__ import annotations
+
 import json
-from typing import List, Dict, Any, Optional
-from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIModel
+import logging
+from typing import List, Optional
 
+from copilot import CopilotClient
+
+from src.config.llm_config import ProviderConfig
 from src.models.agent_models import (
-    GraphSpec,
-    NodeSpec,
-    EdgeSpec,
-    AppInfo,
-    OperationInfo,
-    PrimitiveInfo,
     BUILT_IN_PRIMITIVES,
+    AppInfo,
+    GraphSpec,
 )
 
+LOGGER = logging.getLogger(__name__)
 
-class LLMGraphGenerator:
-    """Generates workflow graphs using LLM with structured outputs."""
-
-    def __init__(self, model_name: str = "gpt-4o"):
-        """
-        Initialize the LLM graph generator.
-
-        Args:
-            model_name: OpenAI model to use (gpt-4o, gpt-4o-mini, etc.)
-        """
-        self.model_name = model_name
-        self.model = OpenAIModel(model_name)
-
-        # Create pydantic-ai agent with structured output
-        self.agent = Agent(
-            self.model,
-            result_type=GraphSpec,
-            system_prompt=self._build_system_prompt(),
-        )
-
-    def _build_system_prompt(self) -> str:
-        """Build the system prompt for the graph generation agent."""
-        return """You are an expert workflow automation architect for Tapcraft.
+SYSTEM_PROMPT = """You are an expert workflow automation architect for Tapcraft.
 
 Your job is to design workflow graphs that orchestrate app operations and primitives to accomplish user goals.
 
 KEY PRINCIPLES:
 1. **Start with a trigger**: Every workflow must begin with a trigger node (kind="trigger", primitive_type="manual" or "cron")
 2. **Use available operations**: Only reference app operations that are provided in the context
-3. **Linear flows first**: For v1, create simple linear flows (A → B → C). Branching/conditions come later.
-4. **Primitives when needed**: Use HTTP requests, delays, or logs when no app operation fits
+3. **Linear flows first**: For v1, create simple linear flows (A -> B -> C). Branching/conditions come later.
+4. **Primitives when needed**: Use HTTP requests, delays, logs, or browse when no app operation fits
 5. **Meaningful labels**: Give nodes clear, action-oriented labels ("Fetch Unread Emails", not "Node 1")
 6. **Logical positions**: Place nodes left-to-right in execution order (x: 100, 300, 500...)
 
@@ -57,20 +35,54 @@ WORKFLOW STRUCTURE:
 - Entry point: Always the trigger node
 
 OUTPUT FORMAT:
-Return a complete GraphSpec with:
-- name: Clear workflow name
-- description: What the workflow does
-- nodes: All nodes including trigger
-- edges: All connections
-- entry_node_temp_id: Points to trigger
-- reasoning: Your thought process
+Return a valid JSON object matching this schema:
+{
+  "name": "Workflow name",
+  "description": "What the workflow does",
+  "nodes": [
+    {
+      "temp_id": "trigger",
+      "kind": "trigger",
+      "label": "Manual Trigger",
+      "primitive_type": "manual",
+      "config": {},
+      "ui_position": {"x": 100, "y": 200}
+    }
+  ],
+  "edges": [
+    {"from_temp_id": "trigger", "to_temp_id": "next_node", "path": "success"}
+  ],
+  "entry_node_temp_id": "trigger",
+  "reasoning": "Your thought process"
+}
 
 EXAMPLES OF GOOD WORKFLOWS:
-1. Email → Notion: Trigger → Fetch Emails → Filter Important → Create Notion Page
-2. Daily Report: Cron Trigger → Fetch Data (HTTP) → Process → Send Slack Message
-3. Backup Workflow: Trigger → Read Files → Upload to S3 → Log Success
+1. Email -> Notion: Trigger -> Fetch Emails -> Filter Important -> Create Notion Page
+2. Daily Report: Cron Trigger -> Fetch Data (HTTP) -> Process -> Send Slack Message
+3. Web Verification: Trigger -> Browse Page -> Verify Element -> Log Result
 
 Think step by step and design a clean, working workflow."""
+
+
+class LLMGraphGenerator:
+    """Generates workflow graphs using GitHub Copilot SDK."""
+
+    def __init__(self, config: ProviderConfig):
+        """
+        Initialize the LLM graph generator.
+
+        Args:
+            config: Provider configuration with BYOK credentials
+        """
+        self.config = config
+        self._client: CopilotClient | None = None
+
+    async def _get_client(self) -> CopilotClient:
+        """Get or create the Copilot client."""
+        if self._client is None:
+            self._client = CopilotClient()
+            await self._client.start()
+        return self._client
 
     async def generate_graph(
         self,
@@ -89,14 +101,23 @@ Think step by step and design a clean, working workflow."""
         Returns:
             GraphSpec: Complete workflow graph specification
         """
+        client = await self._get_client()
 
-        # Build context about available capabilities
+        session = await client.create_session({
+            "model": self.config.model,
+            "provider": self.config.to_copilot_provider_config(),
+        })
+
         context = self._build_context(user_prompt, available_apps, constraints or [])
+        full_prompt = f"{SYSTEM_PROMPT}\n\n{context}"
 
-        # Call LLM with structured output
-        result = await self.agent.run(context)
+        result = await session.send_and_wait({"prompt": full_prompt})
 
-        return result.data
+        # Parse JSON from response
+        output = result.output if hasattr(result, "output") else str(result)
+        graph_data = self._extract_json(output)
+
+        return GraphSpec.model_validate(graph_data)
 
     def _build_context(
         self,
@@ -105,14 +126,9 @@ Think step by step and design a clean, working workflow."""
         constraints: List[str],
     ) -> str:
         """Build the context/prompt for the LLM."""
-
-        # Format available apps
         apps_description = self._format_apps(available_apps)
-
-        # Format primitives
         primitives_description = self._format_primitives()
 
-        # Build full prompt
         prompt = f"""USER REQUEST:
 {user_prompt}
 
@@ -124,7 +140,7 @@ BUILT-IN PRIMITIVES:
 """
 
         if constraints:
-            prompt += f"\nADDITIONAL CONSTRAINTS:\n" + "\n".join(
+            prompt += "\nADDITIONAL CONSTRAINTS:\n" + "\n".join(
                 f"- {c}" for c in constraints
             )
 
@@ -139,7 +155,8 @@ Remember:
 - Set ui_position for left-to-right flow
 - Include all required config for nodes that need it
 - Connect nodes with edges (usually path="success")
-"""
+
+Return ONLY the JSON object, no markdown code blocks."""
 
         return prompt
 
@@ -161,13 +178,10 @@ Remember:
                 if op.description:
                     lines.append(f"    - Description: {op.description}")
 
-                # Show config schema if available
-                try:
-                    schema = json.loads(op.config_schema) if isinstance(op.config_schema, str) else op.config_schema
-                    if schema.get("properties"):
-                        lines.append(f"    - Config: {', '.join(schema['properties'].keys())}")
-                except:
-                    pass
+                if op.config_schema and op.config_schema.get("properties"):
+                    lines.append(
+                        f"    - Config: {', '.join(op.config_schema['properties'].keys())}"
+                    )
 
         return "\n".join(lines)
 
@@ -184,6 +198,28 @@ Remember:
                 )
 
         return "\n".join(lines)
+
+    def _extract_json(self, text: str) -> dict:
+        """Extract JSON object from LLM response."""
+        # Try direct parse first
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+
+        # Try to find JSON in markdown code block
+        import re
+
+        json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+        if json_match:
+            return json.loads(json_match.group(1))
+
+        # Try to find raw JSON object
+        json_match = re.search(r"\{.*\}", text, re.DOTALL)
+        if json_match:
+            return json.loads(json_match.group(0))
+
+        raise ValueError(f"Could not extract JSON from response: {text[:200]}")
 
     def generate_graph_sync(
         self,
@@ -209,17 +245,16 @@ Remember:
         )
 
 
-def create_graph_generator(
-    model_name: Optional[str] = None,
-) -> LLMGraphGenerator:
+def create_graph_generator() -> LLMGraphGenerator | None:
     """
     Factory function to create a graph generator.
 
-    Args:
-        model_name: Optional model name override (defaults to env or gpt-4o)
-
     Returns:
-        LLMGraphGenerator instance
+        LLMGraphGenerator instance or None if no provider configured
     """
-    model = model_name or os.getenv("TAPCRAFT_GRAPH_MODEL", "gpt-4o")
-    return LLMGraphGenerator(model_name=model)
+    config = ProviderConfig.from_env()
+    if not config:
+        LOGGER.warning("No LLM provider configured - graph generation unavailable")
+        return None
+
+    return LLMGraphGenerator(config)
