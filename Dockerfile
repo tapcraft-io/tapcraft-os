@@ -1,7 +1,7 @@
 FROM python:3.11-slim
 
 ENV POETRY_VERSION=1.7.1 \
-    POETRY_VIRTUALENVS_IN_PROJECT=true \
+    POETRY_VIRTUALENVS_CREATE=false \
     POETRY_NO_INTERACTION=1
 
 RUN apt-get update \
@@ -12,9 +12,9 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY pyproject.toml README.md .
-RUN poetry install --no-root
+COPY pyproject.toml README.md ./
+RUN poetry install --no-root --no-directory
 
 COPY src src
 
-CMD ["poetry", "run", "uvicorn", "src.api.server:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "src.api.server:app", "--host", "0.0.0.0", "--port", "8000"]
