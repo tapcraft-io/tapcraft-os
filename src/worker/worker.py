@@ -14,6 +14,8 @@ from temporalio import activity, workflow
 from temporalio.client import Client
 from temporalio.worker import Worker
 
+from src.activities import browse_page
+
 # Add workspace directory to Python path
 WORKSPACE_ROOT = Path(__file__).resolve().parent.parent.parent / "workspace"
 if str(WORKSPACE_ROOT) not in sys.path:
@@ -164,6 +166,7 @@ def built_in_activities() -> Iterable[Callable[..., Any]]:
         files_write,
         git_commit_and_push,
         mcp_call,
+        browse_page,
     ]
 
 
