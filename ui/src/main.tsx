@@ -7,6 +7,8 @@ import Dashboard from './pages/Dashboard';
 import Agent from './pages/Agent';
 import Workflows from './pages/Workflows';
 import Settings from './pages/Settings';
+import Apps from './pages/Apps';
+import Runs from './pages/Runs';
 import './styles.css';
 
 const router = createBrowserRouter([
@@ -15,14 +17,23 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       { index: true, element: <Dashboard /> },
-      { path: 'agent', element: <Agent /> },
+      { path: 'apps', element: <Apps /> },
       { path: 'workflows', element: <Workflows /> },
+      { path: 'agent', element: <Agent /> },
+      { path: 'runs', element: <Runs /> },
       { path: 'settings', element: <Settings /> }
     ]
   }
 ]);
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
