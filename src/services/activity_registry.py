@@ -1,0 +1,135 @@
+"""Activity registry for Temporal workers."""
+
+import importlib
+import sys
+from pathlib import Path
+from typing import Dict, List, Callable, Any
+from temporalio import activity
+
+
+class ActivityRegistry:
+    """Registry for Temporal activities from app operations."""
+
+    def __init__(self):
+        self.activities: Dict[str, Callable] = {}
+        self._register_built_in_activities()
+
+    def _register_built_in_activities(self):
+        """Register built-in primitive activities."""
+
+        @activity.defn(name="net.http.request")
+        async def http_request(config: Dict[str, Any]) -> Dict[str, Any]:
+            """Execute HTTP request."""
+            import httpx
+
+            method = config.get("method", "GET")
+            url = config.get("url")
+            headers = config.get("headers", {})
+            body = config.get("body")
+
+            async with httpx.AsyncClient() as client:
+                response = await client.request(
+                    method=method, url=url, headers=headers, content=body
+                )
+                return {
+                    "status_code": response.status_code,
+                    "body": response.text,
+                    "headers": dict(response.headers),
+                }
+
+        @activity.defn(name="files.read")
+        async def files_read(config: Dict[str, Any]) -> Dict[str, Any]:
+            """Read file."""
+            path = config.get("path")
+            if not path:
+                return {"error": "No path provided"}
+
+            try:
+                with open(path, "r") as f:
+                    content = f.read()
+                return {"content": content, "path": path}
+            except Exception as e:
+                return {"error": str(e)}
+
+        @activity.defn(name="files.write")
+        async def files_write(config: Dict[str, Any]) -> Dict[str, Any]:
+            """Write file."""
+            path = config.get("path")
+            content = config.get("content")
+
+            if not path:
+                return {"error": "No path provided"}
+
+            try:
+                with open(path, "w") as f:
+                    f.write(content or "")
+                return {"success": True, "path": path}
+            except Exception as e:
+                return {"error": str(e)}
+
+        self.activities["net.http.request"] = http_request
+        self.activities["files.read"] = files_read
+        self.activities["files.write"] = files_write
+
+    def register_app_operation(
+        self, operation_name: str, code_symbol: str, implementation: Callable = None
+    ):
+        """
+        Register an app operation as an activity.
+
+        Args:
+            operation_name: Unique name for the activity
+            code_symbol: Python import path (e.g., "apps.email.filter_important")
+            implementation: Optional actual implementation function
+        """
+
+        if implementation:
+            # Use provided implementation
+            activity_func = activity.defn(name=code_symbol)(implementation)
+            self.activities[code_symbol] = activity_func
+        else:
+            # Create a dynamic stub that imports the actual code
+            @activity.defn(name=code_symbol)
+            async def dynamic_activity(config: Dict[str, Any]) -> Dict[str, Any]:
+                """Dynamically imported activity."""
+                try:
+                    # Import the module and function
+                    module_path, func_name = code_symbol.rsplit(".", 1)
+                    module = importlib.import_module(module_path)
+                    func = getattr(module, func_name)
+
+                    # Call the function
+                    if callable(func):
+                        result = func(config)
+                        # Handle async functions
+                        if hasattr(result, "__await__"):
+                            result = await result
+                        return result
+                    else:
+                        return {"error": f"{code_symbol} is not callable"}
+
+                except ImportError as e:
+                    return {"error": f"Failed to import {code_symbol}: {str(e)}"}
+                except Exception as e:
+                    return {"error": f"Failed to execute {code_symbol}: {str(e)}"}
+
+            self.activities[code_symbol] = dynamic_activity
+
+    def get_all_activities(self) -> List[Callable]:
+        """Get all registered activities for the worker."""
+        return list(self.activities.values())
+
+    def load_app_operations_from_db(self, app_operations: List[Dict[str, Any]]):
+        """
+        Load app operations from database and register as activities.
+
+        Args:
+            app_operations: List of app operation dicts with code_symbol, name, etc.
+        """
+        for op in app_operations:
+            code_symbol = op.get("code_symbol")
+            name = op.get("name")
+            if code_symbol:
+                self.register_app_operation(
+                    operation_name=name or code_symbol, code_symbol=code_symbol
+                )
