@@ -70,6 +70,12 @@ async def execute_workflow(
         # Import the workflow class
         import importlib
 
+        if not module_path.startswith("workspace."):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid module path: only workspace modules are allowed",
+            )
+
         try:
             module = importlib.import_module(module_path)
             workflow_class = getattr(module, class_name)
@@ -121,61 +127,133 @@ async def get_run_status(
     run_id: int,
     db: AsyncSession = Depends(get_db),
 ):
-    """Get the current status of a workflow run."""
+    """Get the current status of a workflow run, including per-activity history."""
     from temporalio.client import Client
 
     run = await crud.get_run(db=db, run_id=run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
 
-    # If run is already finished, return status from DB
-    if run.status in ("succeeded", "failed"):
-        return {
-            "run_id": run.id,
-            "status": run.status,
-            "started_at": run.started_at,
-            "ended_at": run.ended_at,
-            "summary": run.summary,
-            "error_excerpt": run.error_excerpt,
-        }
+    # Get workflow name for context
+    workflow = await crud.get_workflow(db=db, workflow_id=run.workflow_id) if run.workflow_id else None
+    workflow_name = workflow.name if workflow else f"Workflow {run.workflow_id}"
 
-    # Query Temporal for current status
-    if run.temporal_workflow_id:
-        try:
-            temporal_address = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
-            client = await Client.connect(temporal_address)
-
-            handle = client.get_workflow_handle(run.temporal_workflow_id)
-
-            # Try to get the result (non-blocking describe)
-            describe = await handle.describe()
-
-            status = "running"
-            if describe.status.name == "COMPLETED":
-                status = "succeeded"
-            elif describe.status.name in ("FAILED", "TERMINATED", "TIMED_OUT"):
-                status = "failed"
-
-            # Update run in DB if status changed
-            if status != run.status:
-                await crud.update_run(db=db, run_id=run.id, status=status)
-
-            return {
-                "run_id": run.id,
-                "status": status,
-                "started_at": run.started_at,
-                "temporal_status": describe.status.name,
-            }
-
-        except Exception as e:
-            return {
-                "run_id": run.id,
-                "status": run.status,
-                "error": f"Failed to query Temporal: {str(e)}",
-            }
-
-    return {
+    base_response = {
         "run_id": run.id,
         "status": run.status,
         "started_at": run.started_at,
+        "ended_at": run.ended_at,
+        "summary": run.summary,
+        "error_excerpt": run.error_excerpt,
+        "workflow_id": run.workflow_id,
+        "workflow_name": workflow_name,
+        "temporal_workflow_id": run.temporal_workflow_id,
+        "input_config": run.input_config,
+        "activity_history": [],
     }
+
+    # If no temporal ID, return base response
+    if not run.temporal_workflow_id:
+        return base_response
+
+    try:
+        temporal_address = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
+        client = await Client.connect(temporal_address)
+        handle = client.get_workflow_handle(run.temporal_workflow_id)
+
+        # Describe to get current status
+        from temporalio.api.enums.v1 import WorkflowExecutionStatus
+
+        describe = await handle.describe()
+
+        status = "running"
+        wf_status = describe.status
+        if wf_status == WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_COMPLETED:
+            status = "succeeded"
+        elif wf_status == WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_CANCELED:
+            status = "cancelled"
+        elif wf_status in (
+            WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_FAILED,
+            WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_TERMINATED,
+            WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_TIMED_OUT,
+        ):
+            status = "failed"
+
+        # Update run in DB if status changed
+        if status != run.status:
+            await crud.update_run(db=db, run_id=run.id, status=status)
+
+        base_response["status"] = status
+        base_response["temporal_status"] = WorkflowExecutionStatus.Name(wf_status)
+
+        # Fetch activity execution history from Temporal
+        activity_history = []
+        try:
+            from temporalio.api.enums.v1 import EventType
+
+            history = await handle.fetch_history()
+            activity_scheduled = {}  # event_id -> scheduled info
+
+            for event in history.events:
+                et = event.event_type
+
+                if et == EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED:
+                    attrs = event.activity_task_scheduled_event_attributes
+                    activity_scheduled[event.event_id] = {
+                        "activity_name": attrs.activity_type.name,
+                        "scheduled_at": event.event_time.ToDatetime().isoformat() if event.event_time else None,
+                        "scheduled_event_id": event.event_id,
+                    }
+
+                elif et == EventType.EVENT_TYPE_ACTIVITY_TASK_STARTED:
+                    attrs = event.activity_task_started_event_attributes
+                    sched_id = attrs.scheduled_event_id
+                    if sched_id in activity_scheduled:
+                        activity_scheduled[sched_id]["started_at"] = (
+                            event.event_time.ToDatetime().isoformat() if event.event_time else None
+                        )
+
+                elif et == EventType.EVENT_TYPE_ACTIVITY_TASK_COMPLETED:
+                    attrs = event.activity_task_completed_event_attributes
+                    sched_id = attrs.scheduled_event_id
+                    if sched_id in activity_scheduled:
+                        info = activity_scheduled[sched_id]
+                        info["status"] = "completed"
+                        info["ended_at"] = event.event_time.ToDatetime().isoformat() if event.event_time else None
+                        activity_history.append(info)
+
+                elif et == EventType.EVENT_TYPE_ACTIVITY_TASK_FAILED:
+                    attrs = event.activity_task_failed_event_attributes
+                    sched_id = attrs.scheduled_event_id
+                    if sched_id in activity_scheduled:
+                        info = activity_scheduled[sched_id]
+                        info["status"] = "failed"
+                        info["ended_at"] = event.event_time.ToDatetime().isoformat() if event.event_time else None
+                        info["error"] = str(attrs.failure.message) if attrs.failure else None
+                        activity_history.append(info)
+
+                elif et == EventType.EVENT_TYPE_ACTIVITY_TASK_TIMED_OUT:
+                    attrs = event.activity_task_timed_out_event_attributes
+                    sched_id = attrs.scheduled_event_id
+                    if sched_id in activity_scheduled:
+                        info = activity_scheduled[sched_id]
+                        info["status"] = "timed_out"
+                        info["ended_at"] = event.event_time.ToDatetime().isoformat() if event.event_time else None
+                        activity_history.append(info)
+
+            # Add still-running activities (scheduled but not completed/failed)
+            completed_ids = {a.get("scheduled_event_id") for a in activity_history}
+            for sched_id, info in activity_scheduled.items():
+                if sched_id not in completed_ids:
+                    info["status"] = "running"
+                    activity_history.append(info)
+
+        except Exception:
+            pass  # History fetch is best-effort
+
+        base_response["activity_history"] = activity_history
+        return base_response
+
+    except Exception as e:
+        base_response["error"] = f"Failed to query Temporal: {str(e)}"
+        return base_response

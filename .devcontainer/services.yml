@@ -1,0 +1,15 @@
+name: tapcraft-dev
+
+services:
+  temporal:
+    image: temporalio/temporal:latest
+    container_name: tapcraft-dev-temporal
+    command: ["temporal", "server", "start-dev", "--ip", "0.0.0.0"]
+    ports:
+      - "15600:7233"
+      - "15601:8233"
+    networks:
+      - tapcraft-dev
+
+networks:
+  tapcraft-dev:

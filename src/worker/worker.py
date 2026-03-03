@@ -14,7 +14,13 @@ from temporalio import activity, workflow
 from temporalio.client import Client
 from temporalio.worker import Worker
 
-from src.activities import browse_page
+from src.activities import (
+    # Platform: Generic Data Activities
+    http_parallel,
+    rss_read,
+    parse_xml,
+    dedup,
+)
 
 # Add workspace directory to Python path
 WORKSPACE_ROOT = Path(__file__).resolve().parent.parent.parent / "workspace"
@@ -42,14 +48,14 @@ def discover_workflows_from_generated() -> List[Type[workflow.Workflow]]:
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             for _, obj in inspect.getmembers(module, inspect.isclass):
-                if hasattr(obj, "_workflow_run_fn"):
+                if hasattr(obj, "__temporal_workflow_definition"):
                     workflows.append(obj)
 
     return workflows
 
 
 def discover_workflows_from_workspace() -> List[Type[workflow.Workflow]]:
-    """Discover workflows from workspace directories."""
+    """Discover workflows from workspace directories (generated + repo)."""
     workflows: List[Type[workflow.Workflow]] = []
 
     if not WORKSPACE_ROOT.exists():
@@ -58,46 +64,102 @@ def discover_workflows_from_workspace() -> List[Type[workflow.Workflow]]:
 
     # Scan all workspace_* directories
     for workspace_dir in WORKSPACE_ROOT.glob("workspace_*"):
-        workflows_dir = workspace_dir / "workflows"
-        if not workflows_dir.exists():
-            continue
+        # Scan both workspace_*/workflows/ and workspace_*/repo/workflows/
+        search_dirs = [
+            workspace_dir / "workflows",
+            workspace_dir / "repo" / "workflows",
+        ]
 
-        # Import workflows from this workspace
-        for workflow_file in workflows_dir.glob("*.py"):
-            if workflow_file.name == "__init__.py":
+        for workflows_dir in search_dirs:
+            if not workflows_dir.exists():
                 continue
 
-            try:
-                # Build module name: workspace.workspace_N.workflows.module_name
-                workspace_id = workspace_dir.name
-                module_name = workflow_file.stem
-                full_module_name = f"workspace.{workspace_id}.workflows.{module_name}"
+            for workflow_file in workflows_dir.glob("*.py"):
+                if workflow_file.name == "__init__.py":
+                    continue
 
-                # Import the module
-                spec = importlib.util.spec_from_file_location(
-                    full_module_name, workflow_file
-                )
-                if spec and spec.loader:
-                    module = importlib.util.module_from_spec(spec)
-                    sys.modules[full_module_name] = module
-                    spec.loader.exec_module(module)
+                try:
+                    workspace_id = workspace_dir.name
+                    module_name = workflow_file.stem
+                    # Build module name based on path
+                    rel = workflows_dir.relative_to(workspace_dir)
+                    parts = [workspace_id] + list(rel.parts) + [module_name]
+                    full_module_name = f"workspace.{'.'.join(parts)}"
 
-                    # Find workflow classes
-                    for _, obj in inspect.getmembers(module, inspect.isclass):
-                        if hasattr(obj, "_workflow_run_fn"):
-                            workflows.append(obj)
-                            LOGGER.info(
-                                f"Discovered workflow: {obj.__name__} from {full_module_name}"
-                            )
+                    spec = importlib.util.spec_from_file_location(
+                        full_module_name, workflow_file
+                    )
+                    if spec and spec.loader:
+                        module = importlib.util.module_from_spec(spec)
+                        sys.modules[full_module_name] = module
+                        spec.loader.exec_module(module)
 
-            except Exception as e:
-                LOGGER.error(f"Failed to load workflow from {workflow_file}: {e}")
+                        for _, obj in inspect.getmembers(module, inspect.isclass):
+                            if hasattr(obj, "__temporal_workflow_definition"):
+                                workflows.append(obj)
+                                LOGGER.info(
+                                    f"Discovered workflow: {obj.__name__} from {full_module_name}"
+                                )
+
+                except Exception as e:
+                    LOGGER.error(f"Failed to load workflow from {workflow_file}: {e}")
 
     return workflows
 
 
-async def load_app_operations_from_db() -> List[Dict[str, Any]]:
-    """Load app operations from database."""
+def discover_activities_from_workspace() -> List[Callable[..., Any]]:
+    """Discover @activity.defn functions from workspace directories (repo/activities/)."""
+    activities: List[Callable[..., Any]] = []
+
+    if not WORKSPACE_ROOT.exists():
+        return activities
+
+    for workspace_dir in WORKSPACE_ROOT.glob("workspace_*"):
+        # Scan both workspace_*/activities/ and workspace_*/repo/activities/
+        search_dirs = [
+            workspace_dir / "activities",
+            workspace_dir / "repo" / "activities",
+        ]
+
+        for activities_dir in search_dirs:
+            if not activities_dir.is_dir():
+                continue
+
+            for py_file in activities_dir.glob("*.py"):
+                if py_file.name == "__init__.py":
+                    continue
+
+                try:
+                    workspace_id = workspace_dir.name
+                    rel = activities_dir.relative_to(workspace_dir)
+                    parts = [workspace_id] + list(rel.parts) + [py_file.stem]
+                    full_module_name = f"workspace.{'.'.join(parts)}"
+
+                    spec = importlib.util.spec_from_file_location(
+                        full_module_name, py_file
+                    )
+                    if not (spec and spec.loader):
+                        continue
+
+                    module = importlib.util.module_from_spec(spec)
+                    sys.modules[full_module_name] = module
+                    spec.loader.exec_module(module)
+
+                    for attr_name, obj in inspect.getmembers(module):
+                        if callable(obj) and hasattr(obj, "__temporal_activity_definition"):
+                            activities.append(obj)
+                            LOGGER.info(
+                                f"Discovered activity: {attr_name} from {full_module_name}"
+                            )
+
+                except Exception as e:
+                    LOGGER.error(f"Failed to load activities from {py_file}: {e}")
+
+    return activities
+
+
+async def load_activity_operations_from_db() -> List[Dict[str, Any]]:
+    """Load activity operations from database."""
     try:
         from src.db.base import AsyncSessionLocal
         from src.services import crud
@@ -108,10 +170,10 @@ async def load_app_operations_from_db() -> List[Dict[str, Any]]:
 
             all_operations = []
             for workspace in workspaces:
-                # Get all apps in workspace
-                apps = await crud.list_apps(db, workspace_id=workspace.id)
-                for app in apps:
-                    for op in app.operations:
+                # Get all activities in workspace
+                activities = await crud.list_activities(db, workspace_id=workspace.id)
+                for act in activities:
+                    for op in act.operations:
                         all_operations.append(
                             {
                                 "code_symbol": op.code_symbol,
@@ -120,11 +182,11 @@ async def load_app_operations_from_db() -> List[Dict[str, Any]]:
                             }
                         )
 
-            LOGGER.info(f"Loaded {len(all_operations)} app operations from database")
+            LOGGER.info(f"Loaded {len(all_operations)} activity operations from database")
             return all_operations
 
     except Exception as e:
-        LOGGER.error(f"Failed to load app operations from database: {e}")
+        LOGGER.error(f"Failed to load activity operations from database: {e}")
         return []
 
 
@@ -153,21 +215,57 @@ async def git_commit_and_push(_: Dict[str, Any]) -> Dict[str, Any]:
     return {"status": "ok"}
 
 
-@activity.defn(name="mcp.call")
-async def mcp_call(_: Dict[str, Any]) -> Dict[str, Any]:
-    LOGGER.info("mcp.call placeholder invoked")
-    return {"status": "ok"}
-
-
 def built_in_activities() -> Iterable[Callable[..., Any]]:
     return [
         net_http_request,
         files_read,
         files_write,
         git_commit_and_push,
-        mcp_call,
-        browse_page,
+        # Platform: Generic Data Activities
+        http_parallel,
+        rss_read,
+        parse_xml,
+        dedup,
     ]
+
+
+RELOAD_CHECK_INTERVAL = int(os.getenv("WORKER_RELOAD_CHECK_INTERVAL", "5"))
+
+
+def snapshot_workspace_files() -> set[str]:
+    """Return a set of activity/workflow .py file paths in the workspace."""
+    files: set[str] = set()
+    if not WORKSPACE_ROOT.exists():
+        return files
+    for workspace_dir in WORKSPACE_ROOT.glob("workspace_*"):
+        # Scan workflows/ and repo/workflows/
+        for subdir in ["workflows", "repo/workflows", "activities", "repo/activities"]:
+            target = workspace_dir / subdir
+            if target.exists():
+                for f in target.glob("*.py"):
+                    if f.name != "__init__.py":
+                        files.add(str(f))
+    if GENERATED_PATH.exists():
+        for f in GENERATED_PATH.glob("*.py"):
+            files.add(str(f))
+    return files
+
+
+async def watch_for_new_workflows(
+    known_files: set[str], shutdown_event: asyncio.Event
+) -> None:
+    """Poll workspace for new workflow/activity files; signal shutdown when found."""
+    while not shutdown_event.is_set():
+        await asyncio.sleep(RELOAD_CHECK_INTERVAL)
+        current = snapshot_workspace_files()
+        new_files = current - known_files
+        if new_files:
+            LOGGER.info(
+                f"Detected {len(new_files)} new file(s): "
+                f"{[Path(f).name for f in new_files]} — restarting worker to register them"
+            )
+            shutdown_event.set()
+            return
 
 
 async def main() -> None:
@@ -176,30 +274,51 @@ async def main() -> None:
     # Connect to Temporal
     client = await Client.connect(TEMPORAL_ADDRESS)
 
-    # Discover workflows from both legacy and workspace directories
+    # Discover workflows from legacy generated/ and workspace directories (including repos)
     workflows_generated = discover_workflows_from_generated()
     workflows_workspace = discover_workflows_from_workspace()
     all_workflows = workflows_generated + workflows_workspace
 
     LOGGER.info(
-        f"Discovered {len(workflows_generated)} workflows from generated/, "
+        f"Discovered {len(workflows_generated)} from generated/, "
         f"{len(workflows_workspace)} from workspace/"
     )
 
-    # Load app operations from database and register activities
+    # Discover activities from workspace repos
+    workspace_activities = discover_activities_from_workspace()
+    LOGGER.info(f"Discovered {len(workspace_activities)} activities from workspace repos")
+
+    # Load activity operations from database and register activities
     from src.services.activity_registry import ActivityRegistry
 
     activity_registry = ActivityRegistry()
 
-    app_operations = await load_app_operations_from_db()
-    activity_registry.load_app_operations_from_db(app_operations)
+    activity_operations = await load_activity_operations_from_db()
+    activity_registry.load_activity_operations_from_db(activity_operations)
 
-    # Get all activities (built-in + registered)
-    all_activities = list(built_in_activities()) + activity_registry.get_all_activities()
+    # Get all activities (built-in + workspace-discovered + registry)
+    all_activities = (
+        list(built_in_activities())
+        + workspace_activities
+        + activity_registry.get_all_activities()
+    )
 
     LOGGER.info(
         f"Registering {len(all_workflows)} workflows and {len(all_activities)} activities"
     )
+
+    # Reconcile DB schedules with Temporal on startup
+    try:
+        from src.services.schedule_service import reconcile_schedules_from_db
+
+        reconciled = await reconcile_schedules_from_db()
+        LOGGER.info("Schedule reconciliation complete (%d created)", reconciled)
+    except Exception as e:
+        LOGGER.error("Schedule reconciliation failed: %s", e)
+
+    # Snapshot current files so we can detect new ones
+    known_files = snapshot_workspace_files()
+    shutdown_event = asyncio.Event()
 
     # Start worker
     async with Worker(
@@ -209,8 +328,15 @@ async def main() -> None:
         activities=all_activities,
     ):
         LOGGER.info(f"Worker started on task queue '{TASK_QUEUE}'")
-        LOGGER.info(f"Watching workspace directory: {WORKSPACE_ROOT}")
-        await asyncio.Event().wait()
+        LOGGER.info(f"Registered workflows: {[w.__name__ for w in all_workflows]}")
+        LOGGER.info(f"Watching workspace for new files (every {RELOAD_CHECK_INTERVAL}s)")
+
+        # Run file watcher alongside the worker
+        watcher = asyncio.create_task(watch_for_new_workflows(known_files, shutdown_event))
+        await shutdown_event.wait()
+        watcher.cancel()
+
+    LOGGER.info("Worker shutting down for reload — Docker will restart it")
 
 
 if __name__ == "__main__":

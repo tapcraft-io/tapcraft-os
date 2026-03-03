@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tapcraft Apps Inventory</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ee8c2b",
+              "background-light": "#f8f7f6",
+              "background-dark": "#221910",
+              "surface-dark": "#2e2319", // Slightly lighter than background-dark for cards/tables
+              "surface-border": "#483623",
+              "text-secondary": "#c9ad92",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        /* Custom scrollbar for webkit browsers to match theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #221910; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #483623; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ee8c2b; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display overflow-hidden">
+<div class="flex h-screen w-full">
+<!-- Side Navigation -->
+<aside class="flex w-64 flex-col border-r border-surface-border bg-background-dark shrink-0">
+<div class="flex flex-col h-full justify-between p-4">
+<div class="flex flex-col gap-8">
+<!-- Branding -->
+<div class="flex flex-col px-2">
+<h1 class="text-white text-lg font-bold leading-normal tracking-tight flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">terminal</span>
+                        Tapcraft
+                    </h1>
+<p class="text-text-secondary text-xs font-normal leading-normal mt-1">Dev Platform v2.4.0</p>
+</div>
+<!-- Navigation Links -->
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-secondary hover:bg-surface-border hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<p class="text-sm font-medium leading-normal">Overview</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded bg-surface-border text-white border-l-2 border-primary" href="#">
+<span class="material-symbols-outlined text-[20px] fill-1">apps</span>
+<p class="text-sm font-medium leading-normal">Apps</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-secondary hover:bg-surface-border hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">rocket_launch</span>
+<p class="text-sm font-medium leading-normal">Deployments</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-text-secondary hover:bg-surface-border hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+</nav>
+</div>
+<!-- Bottom Actions -->
+<div class="flex flex-col gap-4">
+<button class="flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded h-10 px-4 bg-primary text-background-dark text-sm font-bold leading-normal tracking-wide hover:brightness-110 transition-all">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span class="truncate">New Project</span>
+</button>
+<div class="pt-4 border-t border-surface-border">
+<a class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-border transition-colors group" href="#">
+<div class="w-8 h-8 rounded-full bg-surface-border flex items-center justify-center text-text-secondary group-hover:text-white group-hover:bg-background-dark">
+<span class="material-symbols-outlined text-[20px]">person</span>
+</div>
+<div class="flex flex-col">
+<p class="text-white text-sm font-medium leading-none">Alex Dev</p>
+<p class="text-text-secondary text-xs font-normal mt-1">Free Tier</p>
+</div>
+</a>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-full overflow-y-auto bg-background-dark relative">
+<!-- Header -->
+<header class="w-full px-8 py-6 border-b border-surface-border bg-background-dark sticky top-0 z-10">
+<div class="max-w-[1200px] mx-auto flex flex-wrap items-end justify-between gap-4">
+<div class="flex flex-col gap-2">
+<h2 class="text-white text-3xl font-black leading-tight tracking-tight">Your Apps</h2>
+<p class="text-text-secondary text-base font-normal">Manage and develop your application inventory.</p>
+</div>
+<div class="flex items-center gap-3">
+<!-- Search input could go here, omitting for cleaner MVP as per req -->
+<button class="flex items-center justify-center gap-2 h-10 px-5 bg-primary text-background-dark text-sm font-bold rounded shadow-lg hover:shadow-orange-900/20 hover:scale-105 transition-all">
+<span class="material-symbols-outlined text-[20px]">smart_toy</span>
+<span>Create app with agent</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Content Body -->
+<div class="flex-1 px-8 py-8">
+<div class="max-w-[1200px] mx-auto flex flex-col gap-6">
+<!-- Table Container -->
+<div class="rounded-lg border border-surface-border bg-surface-dark/50 overflow-hidden shadow-xl">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-border/50 border-b border-surface-border">
+<th class="p-4 text-xs font-semibold uppercase tracking-wider text-text-secondary w-1/4">Name</th>
+<th class="p-4 text-xs font-semibold uppercase tracking-wider text-text-secondary w-1/3">Description</th>
+<th class="p-4 text-xs font-semibold uppercase tracking-wider text-text-secondary w-1/6">Last Modified</th>
+<th class="p-4 text-xs font-semibold uppercase tracking-wider text-text-secondary text-center w-1/12">Ops</th>
+<th class="p-4 text-xs font-semibold uppercase tracking-wider text-text-secondary text-right w-1/6">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-border">
+<!-- Row 1 -->
+<tr class="group hover:bg-surface-border/30 transition-colors">
+<td class="p-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-blue-900/30 text-blue-400 flex items-center justify-center border border-blue-900/50">
+<span class="material-symbols-outlined text-[18px]">shopping_cart</span>
+</div>
+<div>
+<div class="text-sm font-medium text-white group-hover:text-primary transition-colors">Customer Portal v2</div>
+<div class="text-xs text-text-secondary mt-0.5 font-mono">ID: app_8723</div>
+</div>
+</div>
+</td>
+<td class="p-4">
+<p class="text-sm text-text-secondary line-clamp-1">Client-facing dashboard for premium users with subscription management.</p>
+</td>
+<td class="p-4">
+<div class="flex items-center gap-2 text-sm text-white">
+<span class="w-2 h-2 rounded-full bg-green-500"></span>
+                                            2 hours ago
+                                        </div>
+</td>
+<td class="p-4 text-center">
+<span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-border text-white">
+                                            12
+                                        </span>
+</td>
+<td class="p-4 text-right">
+<button class="inline-flex items-center justify-center h-8 px-4 rounded border border-surface-border bg-transparent text-xs font-medium text-white hover:bg-primary hover:text-background-dark hover:border-primary transition-colors">
+                                            Open
+                                        </button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="group hover:bg-surface-border/30 transition-colors">
+<td class="p-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-purple-900/30 text-purple-400 flex items-center justify-center border border-purple-900/50">
+<span class="material-symbols-outlined text-[18px]">sync</span>
+</div>
+<div>
+<div class="text-sm font-medium text-white group-hover:text-primary transition-colors">Inventory Sync</div>
+<div class="text-xs text-text-secondary mt-0.5 font-mono">ID: app_9921</div>
+</div>
+</div>
+</td>
+<td class="p-4">
+<p class="text-sm text-text-secondary line-clamp-1">Internal cron jobs for warehouse synchronization across regions.</p>
+</td>
+<td class="p-4">
+<div class="flex items-center gap-2 text-sm text-white">
+<span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                                            Yesterday
+                                        </div>
+</td>
+<td class="p-4 text-center">
+<span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-border text-white">
+                                            45
+                                        </span>
+</td>
+<td class="p-4 text-right">
+<button class="inline-flex items-center justify-center h-8 px-4 rounded border border-surface-border bg-transparent text-xs font-medium text-white hover:bg-primary hover:text-background-dark hover:border-primary transition-colors">
+                                            Open
+                                        </button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="group hover:bg-surface-border/30 transition-colors">
+<td class="p-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-orange-900/30 text-orange-400 flex items-center justify-center border border-orange-900/50">
+<span class="material-symbols-outlined text-[18px]">analytics</span>
+</div>
+<div>
+<div class="text-sm font-medium text-white group-hover:text-primary transition-colors">Analytics Engine</div>
+<div class="text-xs text-text-secondary mt-0.5 font-mono">ID: app_1102</div>
+</div>
+</div>
+</td>
+<td class="p-4">
+<p class="text-sm text-text-secondary line-clamp-1">Data processing pipeline for user behavior tracking.</p>
+</td>
+<td class="p-4">
+<div class="flex items-center gap-2 text-sm text-white">
+<span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                                            3 days ago
+                                        </div>
+</td>
+<td class="p-4 text-center">
+<span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-border text-white">
+                                            8
+                                        </span>
+</td>
+<td class="p-4 text-right">
+<button class="inline-flex items-center justify-center h-8 px-4 rounded border border-surface-border bg-transparent text-xs font-medium text-white hover:bg-primary hover:text-background-dark hover:border-primary transition-colors">
+                                            Open
+                                        </button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="group hover:bg-surface-border/30 transition-colors">
+<td class="p-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-teal-900/30 text-teal-400 flex items-center justify-center border border-teal-900/50">
+<span class="material-symbols-outlined text-[18px]">badge</span>
+</div>
+<div>
+<div class="text-sm font-medium text-white group-hover:text-primary transition-colors">User Auth Service</div>
+<div class="text-xs text-text-secondary mt-0.5 font-mono">ID: app_5543</div>
+</div>
+</div>
+</td>
+<td class="p-4">
+<p class="text-sm text-text-secondary line-clamp-1">Authentication and authorization microservice with OAuth2 support.</p>
+</td>
+<td class="p-4">
+<div class="flex items-center gap-2 text-sm text-white">
+<span class="w-2 h-2 rounded-full bg-green-500"></span>
+                                            1 week ago
+                                        </div>
+</td>
+<td class="p-4 text-center">
+<span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-border text-white">
+                                            22
+                                        </span>
+</td>
+<td class="p-4 text-right">
+<button class="inline-flex items-center justify-center h-8 px-4 rounded border border-surface-border bg-transparent text-xs font-medium text-white hover:bg-primary hover:text-background-dark hover:border-primary transition-colors">
+                                            Open
+                                        </button>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="group hover:bg-surface-border/30 transition-colors">
+<td class="p-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-pink-900/30 text-pink-400 flex items-center justify-center border border-pink-900/50">
+<span class="material-symbols-outlined text-[18px]">payments</span>
+</div>
+<div>
+<div class="text-sm font-medium text-white group-hover:text-primary transition-colors">Payment Gateway</div>
+<div class="text-xs text-text-secondary mt-0.5 font-mono">ID: app_7712</div>
+</div>
+</div>
+</td>
+<td class="p-4">
+<p class="text-sm text-text-secondary line-clamp-1">Stripe integration wrapper handling checkout sessions.</p>
+</td>
+<td class="p-4">
+<div class="flex items-center gap-2 text-sm text-white">
+<span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                                            2 weeks ago
+                                        </div>
+</td>
+<td class="p-4 text-center">
+<span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-border text-white">
+                                            15
+                                        </span>
+</td>
+<td class="p-4 text-right">
+<button class="inline-flex items-center justify-center h-8 px-4 rounded border border-surface-border bg-transparent text-xs font-medium text-white hover:bg-primary hover:text-background-dark hover:border-primary transition-colors">
+                                            Open
+                                        </button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination Footer -->
+<div class="flex items-center justify-between px-4 py-3 bg-surface-border/30 border-t border-surface-border">
+<div class="flex items-center gap-2">
+<p class="text-xs text-text-secondary">Showing 1-5 of 24 apps</p>
+</div>
+<div class="flex items-center gap-1">
+<button class="flex items-center justify-center w-8 h-8 rounded hover:bg-surface-border text-white disabled:opacity-50 transition-colors">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<button class="flex items-center justify-center w-8 h-8 rounded bg-primary text-background-dark text-xs font-bold shadow-md">1</button>
+<button class="flex items-center justify-center w-8 h-8 rounded hover:bg-surface-border text-white text-xs font-medium transition-colors">2</button>
+<button class="flex items-center justify-center w-8 h-8 rounded hover:bg-surface-border text-white text-xs font-medium transition-colors">3</button>
+<span class="flex items-center justify-center w-8 h-8 text-text-secondary text-xs">...</span>
+<button class="flex items-center justify-center w-8 h-8 rounded hover:bg-surface-border text-white text-xs font-medium transition-colors">6</button>
+<button class="flex items-center justify-center w-8 h-8 rounded hover:bg-surface-border text-white transition-colors">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Empty State / Illustration placeholder (visual filler for bottom of page) -->
+<div class="mt-8 flex flex-col items-center justify-center py-12 border-2 border-dashed border-surface-border rounded-lg opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+<div class="w-16 h-16 rounded-full bg-surface-border flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-3xl text-text-secondary">add_circle</span>
+</div>
+<p class="text-white font-medium">Create a new workspace</p>
+<p class="text-text-secondary text-sm mt-1">Organize your apps into different environments</p>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

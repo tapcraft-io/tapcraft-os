@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tapcraft Agent Assistant</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ee8c2b",
+                        "background-light": "#f8f7f6",
+                        "background-dark": "#221910",
+                        "surface-dark": "#2d241b",
+                        "border-dark": "#483623",
+                        "text-secondary": "#c9ad92"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "mono": ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for webkit browsers */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #221910; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #483623; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ee8c2b; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-white font-display overflow-hidden h-screen flex flex-col">
+<!-- Header -->
+<header class="flex flex-none items-center justify-between whitespace-nowrap border-b border-solid border-border-dark px-6 py-3 bg-[#1e170f] z-20">
+<div class="flex items-center gap-4 text-white">
+<div class="size-8 flex items-center justify-center bg-primary/20 rounded text-primary">
+<span class="material-symbols-outlined text-xl">account_tree</span>
+</div>
+<div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Tapcraft</h2>
+<p class="text-text-secondary text-xs font-medium">Project: Invoice Processing V2</p>
+</div>
+</div>
+<div class="flex flex-1 justify-end gap-6">
+<div class="flex gap-3">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded h-9 px-4 bg-border-dark text-white text-sm font-bold leading-normal hover:bg-[#5a432b] transition-colors gap-2">
+<span class="material-symbols-outlined text-lg">save</span>
+<span class="truncate">Save</span>
+</button>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded h-9 px-4 bg-primary text-[#221a11] text-sm font-bold leading-normal hover:bg-[#ff9e3d] transition-colors gap-2">
+<span class="material-symbols-outlined text-lg">rocket_launch</span>
+<span class="truncate">Deploy</span>
+</button>
+</div>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-9 border border-border-dark" data-alt="User profile avatar image" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCgJC1mSQnLS03pPnUU6qy6EuMxWWd7f1KDIYT6XBxhXrv4s62RO_lkclIOhsPsd82koim6KRkXAFmeAni_RjgIAODNHBMDxWlT0C1yw1Biv1Lz8yu3JmmIyRlTbMvUcXSG8Iz6pcuUxiGnnbp1NVTufvowWoo1spXVpSS9SQHw_u1Q_a2loU5Bp75DE96Vm4dXSnPcUzYfaly4rJy12Px0WDBdOIfvoIttQzJoFL69WBsh-V1-U8yxSBWboAT2fL0TjjMoSJPzX1Q");'></div>
+</div>
+</header>
+<!-- Main Content Layout -->
+<div class="flex flex-1 overflow-hidden">
+<!-- Left Column: Chat Interface -->
+<div class="flex flex-col w-[45%] border-r border-border-dark bg-background-dark/50 relative">
+<!-- Chat History -->
+<div class="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+<!-- Date Separator -->
+<div class="flex justify-center">
+<span class="text-xs font-medium text-text-secondary bg-border-dark/30 px-3 py-1 rounded-full">Today, 10:23 AM</span>
+</div>
+<!-- Agent Message -->
+<div class="flex gap-4">
+<div class="size-8 rounded-full bg-primary/20 flex items-center justify-center text-primary shrink-0 mt-1">
+<span class="material-symbols-outlined text-lg">smart_toy</span>
+</div>
+<div class="flex flex-col gap-2 max-w-[90%]">
+<div class="text-sm font-bold text-white">Tapcraft Agent</div>
+<div class="text-gray-200 text-sm leading-relaxed">
+                            Hello! I'm ready to help you build your automation. What would you like to create today?
+                        </div>
+</div>
+</div>
+<!-- User Message -->
+<div class="flex gap-4 flex-row-reverse">
+<div class="size-8 rounded-full bg-border-dark flex items-center justify-center text-white shrink-0 mt-1">
+<span class="material-symbols-outlined text-lg">person</span>
+</div>
+<div class="flex flex-col gap-2 items-end max-w-[90%]">
+<div class="text-sm font-bold text-white">You</div>
+<div class="bg-surface-dark p-3 rounded-xl rounded-tr-none text-sm text-gray-200 border border-border-dark">
+                            I need a workflow that triggers when a Stripe invoice is paid. It should extract the customer email and send a notification to our sales channel in Slack.
+                        </div>
+</div>
+</div>
+<!-- Agent Message -->
+<div class="flex gap-4">
+<div class="size-8 rounded-full bg-primary/20 flex items-center justify-center text-primary shrink-0 mt-1">
+<span class="material-symbols-outlined text-lg">smart_toy</span>
+</div>
+<div class="flex flex-col gap-2 max-w-[90%]">
+<div class="text-sm font-bold text-white">Tapcraft Agent</div>
+<div class="text-gray-200 text-sm leading-relaxed">
+                            I've drafted a plan for that. I'll need to use the <span class="text-primary font-mono text-xs bg-primary/10 px-1 rounded">stripe.invoice_payment_succeeded</span> trigger and the Slack <span class="text-primary font-mono text-xs bg-primary/10 px-1 rounded">chat.postMessage</span> primitive.
+                            <br/><br/>
+                            Please review the plan in the panel on the right. Does the logic flow look correct?
+                        </div>
+</div>
+</div>
+<!-- User Message -->
+<div class="flex gap-4 flex-row-reverse">
+<div class="size-8 rounded-full bg-border-dark flex items-center justify-center text-white shrink-0 mt-1">
+<span class="material-symbols-outlined text-lg">person</span>
+</div>
+<div class="flex flex-col gap-2 items-end max-w-[90%]">
+<div class="text-sm font-bold text-white">You</div>
+<div class="bg-surface-dark p-3 rounded-xl rounded-tr-none text-sm text-gray-200 border border-border-dark">
+                           Can we add a filter? Only send the message if the amount is greater than $1000.
+                        </div>
+</div>
+</div>
+<!-- Agent Thinking State -->
+<div class="flex gap-4 animate-pulse">
+<div class="size-8 rounded-full bg-primary/20 flex items-center justify-center text-primary shrink-0 mt-1">
+<span class="material-symbols-outlined text-lg">smart_toy</span>
+</div>
+<div class="flex flex-col gap-2 max-w-[90%] w-full">
+<div class="text-sm font-bold text-white">Tapcraft Agent</div>
+<div class="flex items-center gap-2">
+<span class="text-xs text-text-secondary">Updating graph logic...</span>
+<span class="h-1 w-1 rounded-full bg-primary animate-bounce"></span>
+<span class="h-1 w-1 rounded-full bg-primary animate-bounce delay-75"></span>
+<span class="h-1 w-1 rounded-full bg-primary animate-bounce delay-150"></span>
+</div>
+</div>
+</div>
+</div>
+<!-- Input Area -->
+<div class="p-4 border-t border-border-dark bg-[#1e170f]">
+<div class="relative rounded-lg border border-border-dark bg-background-dark shadow-sm focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
+<textarea class="block w-full rounded-lg border-0 bg-transparent py-3 px-4 text-white placeholder:text-text-secondary focus:ring-0 sm:text-sm resize-none font-sans" placeholder="Describe changes to the workflow..." rows="3"></textarea>
+<div class="flex items-center justify-between py-2 px-3 border-t border-border-dark/50">
+<div class="flex items-center gap-2">
+<button class="text-text-secondary hover:text-white transition-colors p-1 rounded hover:bg-white/5">
+<span class="material-symbols-outlined text-xl">attach_file</span>
+</button>
+<button class="text-text-secondary hover:text-white transition-colors p-1 rounded hover:bg-white/5">
+<span class="material-symbols-outlined text-xl">code</span>
+</button>
+</div>
+<button class="inline-flex items-center gap-2 rounded bg-primary px-3 py-1.5 text-sm font-semibold text-[#221a11] shadow-sm hover:bg-[#ff9e3d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors">
+                            Send
+                            <span class="material-symbols-outlined text-sm">send</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Plan & Context -->
+<div class="flex flex-col flex-1 bg-surface-dark/30 overflow-hidden">
+<!-- Tabs -->
+<div class="flex border-b border-border-dark px-6 pt-2 bg-background-dark sticky top-0 z-10">
+<button class="flex items-center justify-center border-b-[3px] border-primary text-white pb-3 pt-3 px-4 font-bold text-sm tracking-[0.015em] gap-2 transition-colors">
+<span class="material-symbols-outlined text-lg">checklist</span>
+                    Current Plan
+                </button>
+<button class="flex items-center justify-center border-b-[3px] border-transparent text-text-secondary hover:text-white pb-3 pt-3 px-4 font-bold text-sm tracking-[0.015em] gap-2 transition-colors">
+<span class="material-symbols-outlined text-lg">extension</span>
+                    Primitives
+                </button>
+<button class="flex items-center justify-center border-b-[3px] border-transparent text-text-secondary hover:text-white pb-3 pt-3 px-4 font-bold text-sm tracking-[0.015em] gap-2 transition-colors">
+<span class="material-symbols-outlined text-lg">difference</span>
+                    Graph Diff
+                    <span class="bg-primary text-background-dark text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1">1</span>
+</button>
+</div>
+<!-- Content Area -->
+<div class="flex-1 overflow-y-auto p-8">
+<!-- Plan Section -->
+<div class="max-w-[800px] mx-auto flex flex-col gap-8">
+<!-- Graph Diff / Changes Card -->
+<div class="bg-background-dark border border-border-dark rounded-lg overflow-hidden">
+<div class="px-5 py-4 border-b border-border-dark flex justify-between items-center bg-[#1e170f]">
+<h3 class="text-white font-bold text-base flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">schema</span>
+                                Proposed Graph Logic
+                            </h3>
+<span class="text-xs uppercase tracking-wider font-bold text-primary bg-primary/10 px-2 py-1 rounded">Pending Approval</span>
+</div>
+<!-- Visual Node Diff Mockup -->
+<div class="p-6 relative">
+<div class="flex flex-col items-center gap-4 relative z-10">
+<!-- Node 1 -->
+<div class="w-full max-w-md p-3 rounded border border-border-dark bg-surface-dark flex items-center gap-3">
+<div class="size-8 rounded bg-[#635bff] flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-sm">payments</span>
+</div>
+<div class="flex-1">
+<div class="text-xs text-text-secondary font-mono">trigger</div>
+<div class="text-sm font-bold text-white">Stripe: Payment Succeeded</div>
+</div>
+</div>
+<!-- Connection Line -->
+<div class="h-6 w-0.5 bg-border-dark"></div>
+<!-- Node 2 (New Addition) -->
+<div class="w-full max-w-md p-3 rounded border border-green-900/50 bg-green-900/10 flex items-center gap-3 relative ring-1 ring-green-500/30">
+<div class="absolute -right-12 top-1/2 -translate-y-1/2 text-green-500 flex items-center gap-1">
+<span class="material-symbols-outlined text-lg">add_circle</span>
+<span class="text-xs font-bold uppercase">Added</span>
+</div>
+<div class="size-8 rounded bg-green-600 flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-sm">functions</span>
+</div>
+<div class="flex-1">
+<div class="text-xs text-green-400 font-mono">logic</div>
+<div class="text-sm font-bold text-white">Condition: Amount &gt; $1000</div>
+</div>
+</div>
+<!-- Connection Line -->
+<div class="h-6 w-0.5 bg-border-dark"></div>
+<!-- Node 3 -->
+<div class="w-full max-w-md p-3 rounded border border-border-dark bg-surface-dark flex items-center gap-3 opacity-80">
+<div class="size-8 rounded bg-[#4a154b] flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-sm">forum</span>
+</div>
+<div class="flex-1">
+<div class="text-xs text-text-secondary font-mono">action</div>
+<div class="text-sm font-bold text-white">Slack: Send Message</div>
+</div>
+</div>
+</div>
+<!-- Abstract Background Pattern -->
+<div class="absolute inset-0 z-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(#483623 1px, transparent 1px); background-size: 20px 20px;">
+</div>
+</div>
+</div>
+<!-- Execution Checklist -->
+<div>
+<h3 class="text-white tracking-light text-xl font-bold leading-tight pb-4">Execution Steps</h3>
+<div class="space-y-3">
+<label class="flex gap-x-3 p-4 rounded-lg bg-surface-dark border border-border-dark hover:border-primary/50 transition-colors group cursor-pointer items-start">
+<input checked="" class="mt-1 h-5 w-5 rounded border-border-dark border-2 bg-transparent text-primary focus:ring-0 focus:ring-offset-0 focus:border-primary cursor-pointer" disabled="" type="checkbox"/>
+<div class="flex flex-col">
+<p class="text-white text-base font-medium leading-normal group-hover:text-primary transition-colors">Listen for Stripe webhook</p>
+<p class="text-text-secondary text-sm font-mono mt-1">event: invoice.payment_succeeded</p>
+</div>
+</label>
+<label class="flex gap-x-3 p-4 rounded-lg bg-surface-dark border border-green-500/30 hover:border-green-500 transition-colors group cursor-pointer items-start shadow-[0_0_15px_rgba(34,197,94,0.05)]">
+<div class="mt-1 h-5 w-5 rounded border-green-500 border-2 bg-green-500/20 text-green-500 flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</div>
+<div class="flex flex-col">
+<p class="text-white text-base font-medium leading-normal group-hover:text-green-400 transition-colors">Apply Amount Filter</p>
+<p class="text-text-secondary text-sm font-mono mt-1 text-green-400/80">if (payload.amount_due &gt; 1000)</p>
+</div>
+</label>
+<label class="flex gap-x-3 p-4 rounded-lg bg-surface-dark border border-border-dark hover:border-primary/50 transition-colors group cursor-pointer items-start">
+<input class="mt-1 h-5 w-5 rounded border-border-dark border-2 bg-transparent text-primary focus:ring-0 focus:ring-offset-0 focus:border-primary cursor-pointer" type="checkbox"/>
+<div class="flex flex-col">
+<p class="text-white text-base font-medium leading-normal group-hover:text-primary transition-colors">Parse JSON to extract Customer Email</p>
+<p class="text-text-secondary text-sm font-mono mt-1">var email = object.customer_email</p>
+</div>
+</label>
+<label class="flex gap-x-3 p-4 rounded-lg bg-surface-dark border border-border-dark hover:border-primary/50 transition-colors group cursor-pointer items-start">
+<input class="mt-1 h-5 w-5 rounded border-border-dark border-2 bg-transparent text-primary focus:ring-0 focus:ring-offset-0 focus:border-primary cursor-pointer" type="checkbox"/>
+<div class="flex flex-col">
+<p class="text-white text-base font-medium leading-normal group-hover:text-primary transition-colors">Send formatted message to Slack #sales channel</p>
+<p class="text-text-secondary text-sm font-mono mt-1">channel: #sales-alerts</p>
+</div>
+</label>
+</div>
+</div>
+<!-- Available Primitives Preview (Contextual) -->
+<div>
+<div class="flex items-center justify-between pb-3 pt-5">
+<h3 class="text-white tracking-light text-lg font-bold">Suggested Primitives</h3>
+<button class="text-primary text-sm font-bold hover:underline">View All</button>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div class="flex items-center gap-3 p-3 rounded bg-surface-dark border border-border-dark hover:bg-white/5 transition-colors cursor-pointer group">
+<div class="size-10 rounded bg-white flex items-center justify-center shrink-0">
+<img alt="Google Sheets Logo" class="w-6 h-6" data-alt="Google Sheets logo icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUaFu9fgFdIC0W6JL0S9YG7LIxGuajV4XcoaLJ-kNKzYO6AtJQMCC03u5QZZdlFcs2omOhsdIx148xtaS1bhzkFDMaIktym8duxsKtNkR6cFxUIywe6wRLEcc-bUlFqWujz5J79EOz3UB543MqATt0zQrGf703Ye_t8ZhBQBauY9-xQvepyoobxnzgNoNMTJSui7-9KqRVIETR-HVMo71BV9MrghSUpNOTqcOMMpjyTol3meENh5QsECdyAJNh3T44l8iercHGtKg"/>
+</div>
+<div>
+<h4 class="text-white text-sm font-bold group-hover:text-primary">Google Sheets</h4>
+<p class="text-xs text-text-secondary">Add Row, Update Cell</p>
+</div>
+</div>
+<div class="flex items-center gap-3 p-3 rounded bg-surface-dark border border-border-dark hover:bg-white/5 transition-colors cursor-pointer group">
+<div class="size-10 rounded bg-[#5865F2] flex items-center justify-center shrink-0">
+<img alt="Discord Logo" class="w-6 h-6 invert" data-alt="Discord logo icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJBxjOx8QBEnbUNsNxuzQIp8MsQdPhvq2LC4BMygHAc8lykcodGEFzmxewjYYB2_rXzNmfgk_MAZOW2bGKGmbV692zd_q4E-0yzWdfJ92haUUAaVOkEQTlOHS-moi82nO0IfvlNmWhPc33nLtmLJqijwMe4u778gBK3N-W4q6hWOLrqxberRwG9SZ-QriW0OuInkgByV_h3jRJn-rCOpW8HszejmmUBKYz9GYdWMp8vuWyGlMuFllYITYclAfbTT_pqPCo-0ennjc"/>
+</div>
+<div>
+<h4 class="text-white text-sm font-bold group-hover:text-primary">Discord</h4>
+<p class="text-xs text-text-secondary">Send Message, Webhook</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,5 +1,14 @@
-"""Temporal activities module."""
+"""Temporal activities module — platform built-ins only."""
 
-from src.activities.browse_activity import browse_page
+# Platform: Generic Data Activities
+from src.activities.http_parallel import http_parallel
+from src.activities.rss_reader import rss_read
+from src.activities.xml_parser import parse_xml
+from src.activities.dedup import dedup
 
-__all__ = ["browse_page"]
+__all__ = [
+    "http_parallel",
+    "rss_read",
+    "parse_xml",
+    "dedup",
+]

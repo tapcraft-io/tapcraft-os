@@ -4,11 +4,17 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './pages/AppShell';
 import Dashboard from './pages/Dashboard';
-import Agent from './pages/Agent';
 import Workflows from './pages/Workflows';
 import Settings from './pages/Settings';
-import Apps from './pages/Apps';
+import Secrets from './pages/Secrets';
+import Activities from './pages/Activities';
+import ActivityDetail from './pages/ActivityDetail';
 import Runs from './pages/Runs';
+import RunDetail from './pages/RunDetail';
+import WorkflowEditor from './pages/WorkflowEditor';
+import { ToastProvider } from './components/Toast';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { AuthGate } from './components/AuthGate';
 import './styles.css';
 
 const router = createBrowserRouter([
@@ -16,12 +22,15 @@ const router = createBrowserRouter([
     path: '/',
     element: <App />,
     children: [
-      { index: true, element: <Dashboard /> },
-      { path: 'apps', element: <Apps /> },
-      { path: 'workflows', element: <Workflows /> },
-      { path: 'agent', element: <Agent /> },
-      { path: 'runs', element: <Runs /> },
-      { path: 'settings', element: <Settings /> }
+      { index: true, element: <ErrorBoundary><Dashboard /></ErrorBoundary> },
+      { path: 'activities', element: <ErrorBoundary><Activities /></ErrorBoundary> },
+      { path: 'activities/:id', element: <ErrorBoundary><ActivityDetail /></ErrorBoundary> },
+      { path: 'workflows', element: <ErrorBoundary><Workflows /></ErrorBoundary> },
+      { path: 'workflows/:id', element: <ErrorBoundary><WorkflowEditor /></ErrorBoundary> },
+      { path: 'runs', element: <ErrorBoundary><Runs /></ErrorBoundary> },
+      { path: 'runs/:id', element: <ErrorBoundary><RunDetail /></ErrorBoundary> },
+      { path: 'secrets', element: <ErrorBoundary><Secrets /></ErrorBoundary> },
+      { path: 'settings', element: <ErrorBoundary><Settings /></ErrorBoundary> }
     ]
   }
 ]);
@@ -38,7 +47,11 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <ToastProvider>
+        <AuthGate>
+          <RouterProvider router={router} />
+        </AuthGate>
+      </ToastProvider>
     </QueryClientProvider>
   </React.StrictMode>
 );

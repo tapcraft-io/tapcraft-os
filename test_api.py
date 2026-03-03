@@ -20,27 +20,27 @@ async def test_crud():
         )
         print(f"   ✓ Created workspace: {workspace.id} - {workspace.name}")
 
-        # 2. Create an app
-        print("\n2. Creating app...")
-        app = await crud.create_app(
+        # 2. Create an activity
+        print("\n2. Creating activity...")
+        activity = await crud.create_activity(
             db=db,
             workspace_id=workspace.id,
             name="Email Notion Sync",
             slug="email_notion_sync",
-            code_module_path="apps/email_notion_sync.py",
+            code_module_path="activities/email_notion_sync.py",
             description="Syncs important emails to Notion",
             category="email",
         )
-        print(f"   ✓ Created app: {app.id} - {app.name}")
+        print(f"   ✓ Created activity: {activity.id} - {activity.name}")
 
-        # 3. Create app operations
-        print("\n3. Creating app operations...")
-        op1 = await crud.create_app_operation(
+        # 3. Create activity operations
+        print("\n3. Creating activity operations...")
+        op1 = await crud.create_activity_operation(
             db=db,
-            app_id=app.id,
+            activity_id=activity.id,
             name="filter_important",
             display_name="Filter Important Emails",
-            code_symbol="apps.email_notion_sync.filter_important",
+            code_symbol="activities.email_notion_sync.filter_important",
             config_schema=json.dumps(
                 {
                     "type": "object",
@@ -53,12 +53,12 @@ async def test_crud():
         )
         print(f"   ✓ Created operation: {op1.id} - {op1.name}")
 
-        op2 = await crud.create_app_operation(
+        op2 = await crud.create_activity_operation(
             db=db,
-            app_id=app.id,
+            activity_id=activity.id,
             name="create_notion_page",
             display_name="Create Notion Page",
-            code_symbol="apps.email_notion_sync.create_notion_page",
+            code_symbol="activities.email_notion_sync.create_notion_page",
             config_schema=json.dumps(
                 {
                     "type": "object",
@@ -109,24 +109,24 @@ async def test_crud():
         filter_node = await crud.create_node(
             db=db,
             graph_id=graph.id,
-            kind="app_operation",
+            kind="activity_operation",
             label="Filter Important",
-            app_operation_id=op1.id,
+            activity_operation_id=op1.id,
             config=json.dumps({"min_priority": 4}),
             ui_position=json.dumps({"x": 300, "y": 100}),
         )
-        print(f"   ✓ Created app operation node: {filter_node.id}")
+        print(f"   ✓ Created activity operation node: {filter_node.id}")
 
         notion_node = await crud.create_node(
             db=db,
             graph_id=graph.id,
-            kind="app_operation",
+            kind="activity_operation",
             label="Save to Notion",
-            app_operation_id=op2.id,
+            activity_operation_id=op2.id,
             config=json.dumps({"database_id": "abc123"}),
             ui_position=json.dumps({"x": 500, "y": 100}),
         )
-        print(f"   ✓ Created app operation node: {notion_node.id}")
+        print(f"   ✓ Created activity operation node: {notion_node.id}")
 
         # 7. Create edges
         print("\n7. Creating graph edges...")
@@ -201,8 +201,8 @@ async def test_crud():
 
         # 13. List operations
         print("\n13. Testing list operations...")
-        apps = await crud.list_apps(db=db, workspace_id=workspace.id)
-        print(f"   ✓ Found {len(apps)} apps")
+        activities = await crud.list_activities(db=db, workspace_id=workspace.id)
+        print(f"   ✓ Found {len(activities)} activities")
 
         workflows = await crud.list_workflows(db=db, workspace_id=workspace.id)
         print(f"   ✓ Found {len(workflows)} workflows")
@@ -215,8 +215,8 @@ async def test_crud():
 
         # 14. Get operations with relationships
         print("\n14. Testing get operations with relationships...")
-        app_with_ops = await crud.get_app(db=db, app_id=app.id, load_operations=True)
-        print(f"   ✓ App has {len(app_with_ops.operations)} operations")
+        activity_with_ops = await crud.get_activity(db=db, activity_id=activity.id, load_operations=True)
+        print(f"   ✓ Activity has {len(activity_with_ops.operations)} operations")
 
         workflow_with_graph = await crud.get_workflow(
             db=db, workflow_id=workflow.id, load_graph=True
