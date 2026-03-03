@@ -4,26 +4,35 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type {
-  App,
+  Activity,
   Workflow,
   WorkflowWithGraph,
   Run,
   Schedule,
   Graph,
-  CreateWorkflowRequest,
-  CreateWorkflowResponse,
+  Node,
+  Edge,
   ExecuteWorkflowRequest,
   ExecuteWorkflowResponse,
   RunStatusResponse,
 } from '../types/tapcraft';
+import { getStoredApiKey } from '../components/AuthGate';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = '/api';
 
-// Helper for API calls
-async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
+// Helper for API calls — injects X-API-Key from localStorage
+export async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const apiKey = getStoredApiKey();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (apiKey) {
+    headers['X-API-Key'] = apiKey;
+  }
+
   const response = await fetch(`${API_BASE}${endpoint}`, {
     headers: {
-      'Content-Type': 'application/json',
+      ...headers,
       ...options?.headers,
     },
     ...options,
@@ -38,21 +47,75 @@ async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> 
 }
 
 // ============================================================================
-// Apps
+// Health & Config
 // ============================================================================
 
-export function useApps(workspaceId: number) {
+export function useHealth() {
   return useQuery({
-    queryKey: ['apps', workspaceId],
-    queryFn: () => apiFetch<App[]>(`/apps?workspace_id=${workspaceId}`),
+    queryKey: ['health'],
+    queryFn: () => apiFetch<{
+      status: string;
+      temporal?: { connected: boolean; namespace: string };
+      worker?: { active: boolean; heartbeat_interval?: number };
+    }>('/health'),
+    refetchInterval: 10_000,
   });
 }
 
-export function useApp(appId: number) {
+export function useConfig() {
   return useQuery({
-    queryKey: ['apps', appId],
-    queryFn: () => apiFetch<App>(`/apps/${appId}`),
-    enabled: !!appId,
+    queryKey: ['config'],
+    queryFn: () => apiFetch<Record<string, any>>('/config'),
+  });
+}
+
+export function useSaveConfig() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: Record<string, any>) =>
+      apiFetch<Record<string, any>>('/config', {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['config'] });
+    },
+  });
+}
+
+// ============================================================================
+// Activities
+// ============================================================================
+
+export function useActivities(workspaceId: number) {
+  return useQuery({
+    queryKey: ['activities', workspaceId],
+    queryFn: () => apiFetch<Activity[]>(`/activities?workspace_id=${workspaceId}`),
+  });
+}
+
+export function useActivity(activityId: number) {
+  return useQuery({
+    queryKey: ['activities', activityId],
+    queryFn: () => apiFetch<Activity>(`/activities/${activityId}`),
+    enabled: !!activityId,
+  });
+}
+
+export function useActivityCode(activityId: number) {
+  return useQuery({
+    queryKey: ['activities', activityId, 'code'],
+    queryFn: () => apiFetch<{ code: string | null; module_path: string }>(`/activities/${activityId}/code`),
+    enabled: !!activityId,
+  });
+}
+
+export function useActivityUsage(activityId: number) {
+  return useQuery({
+    queryKey: ['activities', activityId, 'usage'],
+    queryFn: () => apiFetch<{ workflows: { id: number; name: string; slug: string; description: string | null }[] }>(`/activities/${activityId}/usage`),
+    enabled: !!activityId,
   });
 }
 
@@ -86,28 +149,8 @@ export function useWorkflowGraph(graphId: number) {
 export function useWorkflowCode(workflowId: number) {
   return useQuery({
     queryKey: ['workflows', workflowId, 'code'],
-    queryFn: () => apiFetch<{ code: string; module_path: string }>(`/agent/workflows/${workflowId}/code`),
+    queryFn: () => apiFetch<{ code: string; module_path: string }>(`/workflows/${workflowId}/code`),
     enabled: !!workflowId,
-  });
-}
-
-// ============================================================================
-// Agent - Create Workflow
-// ============================================================================
-
-export function useCreateWorkflow(workspaceId: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (request: CreateWorkflowRequest) =>
-      apiFetch<CreateWorkflowResponse>(`/agent/workflows?workspace_id=${workspaceId}`, {
-        method: 'POST',
-        body: JSON.stringify(request),
-      }),
-    onSuccess: () => {
-      // Invalidate workflows list to refetch
-      queryClient.invalidateQueries({ queryKey: ['workflows', workspaceId] });
-    },
   });
 }
 
@@ -159,9 +202,10 @@ export function useRunStatus(runId: number) {
     queryKey: ['runs', runId, 'status'],
     queryFn: () => apiFetch<RunStatusResponse>(`/execution/runs/${runId}/status`),
     enabled: !!runId,
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
       // Stop polling if run is finished
-      if (data?.status === 'succeeded' || data?.status === 'failed') {
+      const d = query.state.data;
+      if (d?.status === 'succeeded' || d?.status === 'failed') {
         return false;
       }
       return 2000; // Poll every 2 seconds while running
@@ -182,3 +226,103 @@ export function useSchedules(workspaceId: number, workflowId?: number) {
     queryFn: () => apiFetch<Schedule[]>(`/schedules?${params.toString()}`),
   });
 }
+
+// ============================================================================
+// Graph Mutations
+// ============================================================================
+
+export function useUpdateNode(graphId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ nodeId, data }: { nodeId: number; data: { label?: string; config?: string; ui_position?: string } }) =>
+      apiFetch<Node>(`/graphs/nodes/${nodeId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['graphs', graphId] });
+    },
+  });
+}
+
+export function useCreateNode(graphId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: {
+      kind: string;
+      label: string;
+      config?: string;
+      config_schema?: string;
+      ui_position?: string;
+      activity_operation_id?: number | null;
+      primitive_type?: string | null;
+    }) =>
+      apiFetch<Node>(`/graphs/${graphId}/nodes`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['graphs', graphId] });
+    },
+  });
+}
+
+export function useDeleteNode(graphId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (nodeId: number) =>
+      apiFetch<void>(`/graphs/nodes/${nodeId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['graphs', graphId] });
+    },
+  });
+}
+
+export function useCreateEdge(graphId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { from_node_id: number; to_node_id: number; path?: string; label?: string }) =>
+      apiFetch<Edge>(`/graphs/${graphId}/edges`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['graphs', graphId] });
+    },
+  });
+}
+
+export function useDeleteEdge(graphId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (edgeId: number) =>
+      apiFetch<void>(`/graphs/edges/${edgeId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['graphs', graphId] });
+    },
+  });
+}
+
+// ============================================================================
+// Code Regeneration
+// ============================================================================
+
+export function useRegenerateCode() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (workflowId: number) =>
+      apiFetch<{ code: string; module_path: string }>(`/workflows/${workflowId}/regenerate`, {
+        method: 'POST',
+      }),
+    onSuccess: (_data, workflowId) => {
+      queryClient.invalidateQueries({ queryKey: ['workflows', workflowId, 'code'] });
+    },
+  });
+}
+

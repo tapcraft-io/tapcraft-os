@@ -1,4 +1,7 @@
-"""Activity registry for Temporal workers."""
+"""Activity registry for Temporal workers.
+
+Registers built-in primitives and activity operations loaded from the database.
+"""
 
 import importlib
 import sys
@@ -8,7 +11,7 @@ from temporalio import activity
 
 
 class ActivityRegistry:
-    """Registry for Temporal activities from app operations."""
+    """Registry for Temporal activities from activity operations."""
 
     def __init__(self):
         self.activities: Dict[str, Callable] = {}
@@ -71,15 +74,15 @@ class ActivityRegistry:
         self.activities["files.read"] = files_read
         self.activities["files.write"] = files_write
 
-    def register_app_operation(
+    def register_activity_operation(
         self, operation_name: str, code_symbol: str, implementation: Callable = None
     ):
         """
-        Register an app operation as an activity.
+        Register an activity operation as a Temporal activity.
 
         Args:
             operation_name: Unique name for the activity
-            code_symbol: Python import path (e.g., "apps.email.filter_important")
+            code_symbol: Python import path (e.g., "activities.email.filter_important")
             implementation: Optional actual implementation function
         """
 
@@ -95,6 +98,8 @@ class ActivityRegistry:
                 try:
                     # Import the module and function
                     module_path, func_name = code_symbol.rsplit(".", 1)
+                    if not module_path.startswith("workspace."):
+                        return {"error": f"Invalid module path: only workspace modules are allowed"}
                     module = importlib.import_module(module_path)
                     func = getattr(module, func_name)
 
@@ -119,17 +124,17 @@ class ActivityRegistry:
         """Get all registered activities for the worker."""
         return list(self.activities.values())
 
-    def load_app_operations_from_db(self, app_operations: List[Dict[str, Any]]):
+    def load_activity_operations_from_db(self, activity_operations: List[Dict[str, Any]]):
         """
-        Load app operations from database and register as activities.
+        Load activity operations from database and register as Temporal activities.
 
         Args:
-            app_operations: List of app operation dicts with code_symbol, name, etc.
+            activity_operations: List of activity operation dicts with code_symbol, name, etc.
         """
-        for op in app_operations:
+        for op in activity_operations:
             code_symbol = op.get("code_symbol")
             name = op.get("name")
             if code_symbol:
-                self.register_app_operation(
+                self.register_activity_operation(
                     operation_name=name or code_symbol, code_symbol=code_symbol
                 )
