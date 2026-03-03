@@ -34,6 +34,45 @@ GENERATED_PATH = Path(__file__).resolve().parent.parent / "generated"
 TASK_QUEUE = os.getenv("TASK_QUEUE", "default")
 TEMPORAL_ADDRESS = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
 
+_SKIP_DIRS = frozenset((".git", "__pycache__", ".venv", "node_modules", ".mypy_cache"))
+
+
+def add_repo_dirs_to_sys_path() -> None:
+    """Add each workspace repo directory to sys.path for cross-module imports.
+
+    This allows workflow code that lives in a subdirectory (e.g. repo/tapcraft/)
+    to import sibling packages (e.g. ``from tapcraft.activities.foo import Bar``).
+    """
+    if not WORKSPACE_ROOT.exists():
+        return
+    for workspace_dir in WORKSPACE_ROOT.glob("workspace_*"):
+        repo_dir = workspace_dir / "repo"
+        if repo_dir.is_dir() and str(repo_dir) not in sys.path:
+            sys.path.insert(0, str(repo_dir))
+            LOGGER.info(f"Added {repo_dir} to sys.path")
+
+
+def _collect_search_dirs(workspace_dir: Path, kind: str) -> List[Path]:
+    """Return all directories that may contain workflow or activity .py files.
+
+    Checks:
+      - workspace_dir/{kind}/
+      - workspace_dir/repo/{kind}/
+      - workspace_dir/repo/<subdir>/{kind}/   (one level deep, for monorepo layouts)
+    """
+    dirs: List[Path] = [
+        workspace_dir / kind,
+        workspace_dir / "repo" / kind,
+    ]
+    repo_dir = workspace_dir / "repo"
+    if repo_dir.is_dir():
+        for child in repo_dir.iterdir():
+            if child.is_dir() and child.name not in _SKIP_DIRS:
+                candidate = child / kind
+                if candidate.is_dir():
+                    dirs.append(candidate)
+    return dirs
+
 
 def discover_workflows_from_generated() -> List[Type[workflow.Workflow]]:
     """Discover workflows from src/generated directory (legacy)."""
@@ -64,11 +103,7 @@ def discover_workflows_from_workspace() -> List[Type[workflow.Workflow]]:
 
     # Scan all workspace_* directories
     for workspace_dir in WORKSPACE_ROOT.glob("workspace_*"):
-        # Scan both workspace_*/workflows/ and workspace_*/repo/workflows/
-        search_dirs = [
-            workspace_dir / "workflows",
-            workspace_dir / "repo" / "workflows",
-        ]
+        search_dirs = _collect_search_dirs(workspace_dir, "workflows")
 
         for workflows_dir in search_dirs:
             if not workflows_dir.exists():
@@ -115,11 +150,7 @@ def discover_activities_from_workspace() -> List[Callable[..., Any]]:
         return activities
 
     for workspace_dir in WORKSPACE_ROOT.glob("workspace_*"):
-        # Scan both workspace_*/activities/ and workspace_*/repo/activities/
-        search_dirs = [
-            workspace_dir / "activities",
-            workspace_dir / "repo" / "activities",
-        ]
+        search_dirs = _collect_search_dirs(workspace_dir, "activities")
 
         for activities_dir in search_dirs:
             if not activities_dir.is_dir():
@@ -238,13 +269,12 @@ def snapshot_workspace_files() -> set[str]:
     if not WORKSPACE_ROOT.exists():
         return files
     for workspace_dir in WORKSPACE_ROOT.glob("workspace_*"):
-        # Scan workflows/ and repo/workflows/
-        for subdir in ["workflows", "repo/workflows", "activities", "repo/activities"]:
-            target = workspace_dir / subdir
-            if target.exists():
-                for f in target.glob("*.py"):
-                    if f.name != "__init__.py":
-                        files.add(str(f))
+        for kind in ("workflows", "activities"):
+            for search_dir in _collect_search_dirs(workspace_dir, kind):
+                if search_dir.exists():
+                    for f in search_dir.glob("*.py"):
+                        if f.name != "__init__.py":
+                            files.add(str(f))
     if GENERATED_PATH.exists():
         for f in GENERATED_PATH.glob("*.py"):
             files.add(str(f))
@@ -273,6 +303,10 @@ async def main() -> None:
 
     # Connect to Temporal
     client = await Client.connect(TEMPORAL_ADDRESS)
+
+    # Add repo directories to sys.path so cross-module imports work
+    # (e.g. workflow code importing from sibling activity packages)
+    add_repo_dirs_to_sys_path()
 
     # Discover workflows from legacy generated/ and workspace directories (including repos)
     workflows_generated = discover_workflows_from_generated()

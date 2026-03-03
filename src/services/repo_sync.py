@@ -40,6 +40,9 @@ def _inject_auth_into_url(repo_url: str, token: str) -> str:
     return urlunparse(authed)
 
 
+_SKIP_DIRS = frozenset((".git", "__pycache__", ".venv", "node_modules", ".mypy_cache"))
+
+
 def _ensure_init_files(repo_path: Path) -> None:
     """Ensure __init__.py exists at key directories for Python module resolution."""
     for subdir in [repo_path, repo_path / "activities", repo_path / "workflows"]:
@@ -48,6 +51,15 @@ def _ensure_init_files(repo_path: Path) -> None:
             if not init_file.exists():
                 init_file.write_text("")
                 LOGGER.debug(f"Created {init_file}")
+    # Also handle subdirectory layouts (e.g., repo/tapcraft/activities/)
+    for child in repo_path.iterdir():
+        if child.is_dir() and child.name not in _SKIP_DIRS:
+            for subdir in [child, child / "activities", child / "workflows"]:
+                if subdir.is_dir():
+                    init_file = subdir / "__init__.py"
+                    if not init_file.exists():
+                        init_file.write_text("")
+                        LOGGER.debug(f"Created {init_file}")
 
 
 async def clone_or_pull(workspace: Workspace, db: AsyncSession) -> Tuple[str, Optional[str]]:
