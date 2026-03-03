@@ -1,0 +1,25 @@
+{
+  "name": "Tapcraft",
+  "dockerComposeFile": "devcontainer.yml",
+  "service": "workspace",
+  "workspaceFolder": "/workspace",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-azuretools.vscode-docker",
+        "anthropics.claude-code"
+      ]
+    }
+  },
+  "postCreateCommand": "pip install poetry==1.7.1 && poetry install --no-root && cd ui && npm ci",
+  "forwardPorts": [8000],
+  "remoteUser": "vscode"
+}

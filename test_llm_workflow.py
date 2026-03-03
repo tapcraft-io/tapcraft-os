@@ -33,85 +33,85 @@ async def test_llm_workflow_generation():
         )
         print(f"   ✓ Created workspace: {workspace.id}")
 
-        # 2. Create apps with operations
-        print("\n2. Creating sample apps...")
+        # 2. Create activities with operations
+        print("\n2. Creating sample activities...")
 
-        # Email app
-        email_app = await crud.create_app(
+        # Email activity
+        email_activity = await crud.create_activity(
             db=db,
             workspace_id=workspace.id,
             name="Email Client",
             slug="email_client",
-            code_module_path="apps/email_client.py",
+            code_module_path="activities/email_client.py",
             description="Connect to email providers and process messages",
             category="email",
         )
 
-        await crud.create_app_operation(
+        await crud.create_activity_operation(
             db=db,
-            app_id=email_app.id,
+            activity_id=email_activity.id,
             name="fetch_unread",
             display_name="Fetch Unread Emails",
-            code_symbol="apps.email_client.fetch_unread",
+            code_symbol="activities.email_client.fetch_unread",
             config_schema='{"type": "object", "properties": {"folder": {"type": "string", "default": "INBOX"}}}',
             description="Fetch all unread emails from a specific folder",
         )
 
-        await crud.create_app_operation(
+        await crud.create_activity_operation(
             db=db,
-            app_id=email_app.id,
+            activity_id=email_activity.id,
             name="mark_as_read",
             display_name="Mark as Read",
-            code_symbol="apps.email_client.mark_as_read",
+            code_symbol="activities.email_client.mark_as_read",
             config_schema='{"type": "object", "properties": {"email_ids": {"type": "array"}}}',
             description="Mark specific emails as read",
         )
 
-        # Slack app
-        slack_app = await crud.create_app(
+        # Slack activity
+        slack_activity = await crud.create_activity(
             db=db,
             workspace_id=workspace.id,
             name="Slack Messenger",
             slug="slack",
-            code_module_path="apps/slack.py",
+            code_module_path="activities/slack.py",
             description="Send messages and notifications to Slack",
             category="messaging",
         )
 
-        await crud.create_app_operation(
+        await crud.create_activity_operation(
             db=db,
-            app_id=slack_app.id,
+            activity_id=slack_activity.id,
             name="send_message",
             display_name="Send Slack Message",
-            code_symbol="apps.slack.send_message",
+            code_symbol="activities.slack.send_message",
             config_schema='{"type": "object", "properties": {"channel": {"type": "string"}, "text": {"type": "string"}}, "required": ["channel", "text"]}',
             description="Send a message to a Slack channel",
         )
 
-        # Notion app
-        notion_app = await crud.create_app(
+        # Notion activity
+        notion_activity = await crud.create_activity(
             db=db,
             workspace_id=workspace.id,
             name="Notion Database",
             slug="notion",
-            code_module_path="apps/notion.py",
+            code_module_path="activities/notion.py",
             description="Create and update Notion pages and databases",
             category="productivity",
         )
 
-        await crud.create_app_operation(
+        await crud.create_activity_operation(
             db=db,
-            app_id=notion_app.id,
+            activity_id=notion_activity.id,
             name="create_page",
             display_name="Create Notion Page",
-            code_symbol="apps.notion.create_page",
+            code_symbol="activities.notion.create_page",
             config_schema='{"type": "object", "properties": {"database_id": {"type": "string"}, "title": {"type": "string"}, "content": {"type": "string"}}}',
             description="Create a new page in a Notion database",
         )
 
-        print(f"   ✓ Created {email_app.name} with 2 operations")
-        print(f"   ✓ Created {slack_app.name} with 1 operation")
-        print(f"   ✓ Created {notion_app.name} with 1 operation")
+        print(f"   ✓ Created {email_activity.name} with 2 operations")
+        print(f"   ✓ Created {slack_activity.name} with 1 operation")
+        print(f"   ✓ Created {notion_activity.name} with 1 operation")
 
         # 3. Test different workflow prompts
         test_prompts = [
@@ -161,7 +161,7 @@ async def test_llm_workflow_generation():
 
                 print(f"\n  Node Details:")
                 for node in graph_spec.nodes:
-                    symbol = f"→ op {node.app_operation_id}" if node.app_operation_id else ""
+                    symbol = f"→ op {node.activity_operation_id}" if node.activity_operation_id else ""
                     symbol = symbol or (f"→ {node.primitive_type}" if node.primitive_type else "")
                     print(f"    [{node.temp_id}] {node.label} ({node.kind}){symbol}")
 

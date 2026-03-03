@@ -23,26 +23,26 @@ async def test_agent_workflow_creation():
         )
         print(f"   ✓ Created workspace: {workspace.id} - {workspace.name}")
 
-        # 2. Create an app with operations
-        print("\n2. Creating app with operations...")
-        app = await crud.create_app(
+        # 2. Create an activity with operations
+        print("\n2. Creating activity with operations...")
+        activity = await crud.create_activity(
             db=db,
             workspace_id=workspace.id,
             name="Email Processor",
             slug="email_processor",
-            code_module_path="apps/email_processor.py",
+            code_module_path="activities/email_processor.py",
             description="Process emails",
             category="email",
         )
-        print(f"   ✓ Created app: {app.id} - {app.name}")
+        print(f"   ✓ Created activity: {activity.id} - {activity.name}")
 
         # Add operations
-        op1 = await crud.create_app_operation(
+        op1 = await crud.create_activity_operation(
             db=db,
-            app_id=app.id,
+            activity_id=activity.id,
             name="fetch_emails",
             display_name="Fetch Emails",
-            code_symbol="apps.email_processor.fetch_emails",
+            code_symbol="activities.email_processor.fetch_emails",
             config_schema=json.dumps(
                 {"type": "object", "properties": {"folder": {"type": "string"}}}
             ),
@@ -50,12 +50,12 @@ async def test_agent_workflow_creation():
         )
         print(f"   ✓ Created operation: {op1.name}")
 
-        op2 = await crud.create_app_operation(
+        op2 = await crud.create_activity_operation(
             db=db,
-            app_id=app.id,
+            activity_id=activity.id,
             name="analyze_sentiment",
             display_name="Analyze Sentiment",
-            code_symbol="apps.email_processor.analyze_sentiment",
+            code_symbol="activities.email_processor.analyze_sentiment",
             config_schema=json.dumps({"type": "object"}),
             description="Analyze email sentiment",
         )
@@ -116,8 +116,8 @@ async def test_agent_workflow_creation():
             print(
                 f"     - [{node.id}] {node.label} ({node.kind})"
                 + (
-                    f" -> operation {node.app_operation_id}"
-                    if node.app_operation_id
+                    f" -> operation {node.activity_operation_id}"
+                    if node.activity_operation_id
                     else ""
                 )
             )
@@ -160,7 +160,7 @@ async def test_agent_workflow_creation():
 
 
 async def test_simple_http_workflow():
-    """Test creating a simple HTTP workflow when no apps are available."""
+    """Test creating a simple HTTP workflow when no activities are available."""
     print("\n" + "=" * 80)
     print("Testing Simple HTTP Workflow (Fallback)")
     print("=" * 80)

@@ -10,9 +10,9 @@ export interface Workspace {
   updated_at: string;
 }
 
-export interface AppOperation {
+export interface ActivityOperation {
   id: number;
-  app_id: number;
+  activity_id: number;
   name: string;
   display_name: string;
   description: string | null;
@@ -22,7 +22,7 @@ export interface AppOperation {
   updated_at: string;
 }
 
-export interface App {
+export interface Activity {
   id: number;
   workspace_id: number;
   name: string;
@@ -33,15 +33,15 @@ export interface App {
   graph_id: number | null;
   created_at: string;
   updated_at: string;
-  operations: AppOperation[];
+  operations: ActivityOperation[];
 }
 
 export interface Node {
   id: number;
   graph_id: number;
-  kind: 'trigger' | 'app_operation' | 'primitive' | 'logic';
+  kind: 'trigger' | 'activity_operation' | 'primitive' | 'logic';
   label: string;
-  app_operation_id: number | null;
+  activity_operation_id: number | null;
   primitive_type: string | null;
   config: string;
   config_schema: string;
@@ -64,7 +64,7 @@ export interface Edge {
 export interface Graph {
   id: number;
   workspace_id: number;
-  owner_type: 'workflow' | 'app';
+  owner_type: 'workflow' | 'activity';
   owner_id: number;
   entry_node_id: number | null;
   layout_metadata: string;
@@ -122,10 +122,19 @@ export interface Run {
   updated_at: string;
 }
 
+export interface AgentMessage {
+  id: number;
+  session_id: number;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  action: string | null;
+  created_at: string;
+}
+
 export interface AgentSession {
   id: number;
   workspace_id: number;
-  target_type: 'app' | 'workflow';
+  target_type: 'activity' | 'workflow';
   target_id: number | null;
   mode: 'create' | 'modify' | 'debug';
   user_prompt: string;
@@ -135,12 +144,13 @@ export interface AgentSession {
   status: 'draft' | 'applied' | 'rejected';
   created_at: string;
   updated_at: string;
+  messages?: AgentMessage[];
 }
 
 // API Request/Response types
 export interface CreateWorkflowRequest {
   user_prompt: string;
-  available_apps?: number[] | null;
+  available_activities?: number[] | null;
 }
 
 export interface CreateWorkflowResponse {
@@ -162,6 +172,15 @@ export interface ExecuteWorkflowResponse {
   status: string;
 }
 
+export interface ActivityHistoryEntry {
+  activity_name: string;
+  status: 'completed' | 'failed' | 'running' | 'timed_out';
+  scheduled_at: string | null;
+  started_at?: string | null;
+  ended_at?: string | null;
+  error?: string | null;
+}
+
 export interface RunStatusResponse {
   run_id: number;
   status: string;
@@ -170,6 +189,11 @@ export interface RunStatusResponse {
   summary?: string | null;
   error_excerpt?: string | null;
   temporal_status?: string;
+  workflow_id?: number;
+  workflow_name?: string;
+  temporal_workflow_id?: string | null;
+  input_config?: string;
+  activity_history?: ActivityHistoryEntry[];
 }
 
 // Graph visualization types

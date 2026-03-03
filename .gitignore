@@ -1,9 +1,63 @@
+# Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
 .venv/
-.env
+venv/
+ENV/
 .poetry-cache/
-data/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Database
 *.db
 *.db-journal
+data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Workspace
 workspace/
+
+# Node/Frontend
+node_modules/
+ui/node_modules/
+ui/dist/
+*.log
+.npm
+.pnpm-store/
+
+# Build artifacts
+*.png
+*.jpg
+*.jpeg
+
+# Testing/Tools
+.playwright-mcp/
+.claude/
+coverage/
+.nyc_output/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporal
+*.history
+data/

@@ -14,8 +14,8 @@ from alembic import context
 from src.db.base import Base
 from src.db.models import (
     Workspace,
-    App,
-    AppOperation,
+    Activity,
+    ActivityOperation,
     Workflow,
     Graph,
     Node,
@@ -23,6 +23,8 @@ from src.db.models import (
     Schedule,
     Run,
     AgentSession,
+    AgentMessage,
+    Secret,
 )
 
 # this is the Alembic Config object, which provides

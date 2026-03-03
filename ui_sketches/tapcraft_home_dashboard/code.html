@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tapcraft Home Dashboard</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ee8c2b",
+                        "background-light": "#f8f7f6",
+                        "background-dark": "#111111", // Overridden slightly to match 'off-black' request better than brown
+                        "surface-dark": "#18181b", // Zinc 900
+                        "surface-light": "#27272a", // Zinc 800
+                        "border-dark": "#3f3f46", // Zinc 700
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #18181b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3f3f46; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #52525b; 
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white overflow-hidden h-screen flex w-full">
+<!-- Sidebar -->
+<aside class="w-64 h-full bg-surface-dark border-r border-border-dark flex flex-col shrink-0 transition-all duration-300">
+<div class="p-6 pb-2">
+<div class="flex flex-col gap-1">
+<h1 class="text-white text-xl font-bold tracking-tight flex items-center gap-2">
+<span class="material-symbols-outlined text-primary icon-filled">terminal</span>
+                    Tapcraft
+                </h1>
+<p class="text-zinc-500 text-xs font-medium tracking-wider uppercase ml-8">Automation OS</p>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-6">
+<!-- Main Nav -->
+<nav class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary border border-primary/20 group transition-colors" href="#">
+<span class="material-symbols-outlined icon-filled">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors" href="#">
+<span class="material-symbols-outlined">apps</span>
+<span class="text-sm font-medium">Apps</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors" href="#">
+<span class="material-symbols-outlined">account_tree</span>
+<span class="text-sm font-medium">Workflows</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors" href="#">
+<span class="material-symbols-outlined">smart_toy</span>
+<span class="text-sm font-medium">Agents</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="text-sm font-medium">Runs</span>
+</a>
+</nav>
+<div class="mt-auto flex flex-col gap-4">
+<button class="flex w-full cursor-pointer items-center justify-center rounded-lg h-10 px-4 bg-primary text-zinc-950 hover:bg-primary/90 transition-colors text-sm font-bold shadow-lg shadow-primary/20">
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                        New Workflow
+                    </span>
+</button>
+<div class="flex flex-col gap-1 border-t border-zinc-800 pt-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-sm font-medium">Profile</span>
+</a>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 h-full overflow-y-auto flex flex-col relative">
+<div class="max-w-[1400px] w-full mx-auto p-6 md:p-8 flex flex-col gap-8">
+<!-- Page Heading -->
+<header class="flex flex-wrap justify-between items-end gap-4">
+<div class="flex flex-col gap-1">
+<p class="text-zinc-400 text-sm font-medium">October 24, 2023</p>
+<h2 class="text-white text-3xl font-bold tracking-tight">Good evening, User</h2>
+<div class="flex items-center gap-2 mt-1">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+</span>
+<p class="text-emerald-500 text-sm font-medium">All systems nominal</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="hidden md:flex items-center justify-center h-9 px-4 rounded-lg bg-surface-light border border-border-dark text-zinc-300 hover:text-white hover:border-zinc-500 text-sm font-medium transition-colors">
+                        Documentation
+                    </button>
+<button class="flex items-center justify-center h-9 px-4 rounded-lg bg-surface-light border border-border-dark text-zinc-300 hover:text-white hover:border-zinc-500 text-sm font-medium transition-colors">
+<span class="material-symbols-outlined text-[18px] mr-2">refresh</span>
+                        Refresh
+                    </button>
+</div>
+</header>
+<!-- Stats Grid -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Card 1 -->
+<div class="bg-surface-light border border-border-dark rounded-xl p-5 flex flex-col gap-3 hover:border-zinc-500 transition-colors group">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-zinc-900 rounded-lg text-white border border-zinc-700">
+<span class="material-symbols-outlined">cloud_queue</span>
+</div>
+<span class="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+</div>
+<div>
+<p class="text-zinc-400 text-sm font-medium mb-1">Temporal Cloud</p>
+<p class="text-white text-2xl font-bold tracking-tight">Connected</p>
+</div>
+<div class="pt-2 border-t border-zinc-700/50 mt-1">
+<p class="text-emerald-500 text-xs font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                            Uptime 99.9%
+                        </p>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-light border border-border-dark rounded-xl p-5 flex flex-col gap-3 hover:border-zinc-500 transition-colors group">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-zinc-900 rounded-lg text-white border border-zinc-700">
+<span class="material-symbols-outlined">precision_manufacturing</span>
+</div>
+<span class="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+</div>
+<div>
+<p class="text-zinc-400 text-sm font-medium mb-1">Background Worker</p>
+<p class="text-white text-2xl font-bold tracking-tight">Active</p>
+</div>
+<div class="pt-2 border-t border-zinc-700/50 mt-1">
+<p class="text-zinc-400 text-xs font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">ecg_heart</span>
+                            Heartbeat: 10s
+                        </p>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-light border border-border-dark rounded-xl p-5 flex flex-col gap-3 hover:border-zinc-500 transition-colors group">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-zinc-900 rounded-lg text-white border border-zinc-700">
+<span class="material-symbols-outlined">sync_alt</span>
+</div>
+<span class="flex h-2 w-2 rounded-full bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.5)]"></span>
+</div>
+<div>
+<p class="text-zinc-400 text-sm font-medium mb-1">Git Sync</p>
+<p class="text-white text-2xl font-bold tracking-tight">Synced</p>
+</div>
+<div class="pt-2 border-t border-zinc-700/50 mt-1">
+<p class="text-zinc-400 text-xs font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">call_split</span>
+                            Branch: main
+                        </p>
+</div>
+</div>
+</section>
+<!-- Bottom Section Split -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+<!-- Upcoming Schedules -->
+<div class="xl:col-span-1 flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h3 class="text-white text-lg font-bold tracking-tight">Upcoming Schedules</h3>
+<button class="text-primary text-sm font-medium hover:underline">View All</button>
+</div>
+<div class="bg-surface-light border border-border-dark rounded-xl overflow-hidden flex flex-col">
+<!-- Item 1 -->
+<div class="flex items-center gap-4 p-4 border-b border-zinc-800 hover:bg-zinc-700/20 transition-colors cursor-pointer group">
+<div class="flex items-center justify-center rounded-lg bg-zinc-900 border border-zinc-700 shrink-0 h-10 w-10 group-hover:border-zinc-500 transition-colors text-zinc-400 group-hover:text-white">
+<span class="material-symbols-outlined text-[20px]">database</span>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<p class="text-white text-sm font-medium truncate">Daily Database Backup</p>
+<p class="text-zinc-500 text-xs font-mono truncate">0 0 * * *</p>
+</div>
+<div class="shrink-0 bg-zinc-900 rounded px-2 py-1 border border-zinc-800">
+<p class="text-zinc-300 text-xs font-medium">in 2h</p>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center gap-4 p-4 border-b border-zinc-800 hover:bg-zinc-700/20 transition-colors cursor-pointer group">
+<div class="flex items-center justify-center rounded-lg bg-zinc-900 border border-zinc-700 shrink-0 h-10 w-10 group-hover:border-zinc-500 transition-colors text-zinc-400 group-hover:text-white">
+<span class="material-symbols-outlined text-[20px]">rss_feed</span>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<p class="text-white text-sm font-medium truncate">Tech News Scraper</p>
+<p class="text-zinc-500 text-xs font-mono truncate">0 */4 * * *</p>
+</div>
+<div class="shrink-0 bg-zinc-900 rounded px-2 py-1 border border-zinc-800">
+<p class="text-zinc-300 text-xs font-medium">in 4h</p>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="flex items-center gap-4 p-4 border-b border-zinc-800 hover:bg-zinc-700/20 transition-colors cursor-pointer group">
+<div class="flex items-center justify-center rounded-lg bg-zinc-900 border border-zinc-700 shrink-0 h-10 w-10 group-hover:border-zinc-500 transition-colors text-zinc-400 group-hover:text-white">
+<span class="material-symbols-outlined text-[20px]">mail</span>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<p class="text-white text-sm font-medium truncate">Weekly Digest Email</p>
+<p class="text-zinc-500 text-xs font-mono truncate">0 9 * * 1</p>
+</div>
+<div class="shrink-0 bg-zinc-900 rounded px-2 py-1 border border-zinc-800">
+<p class="text-zinc-300 text-xs font-medium">in 1d</p>
+</div>
+</div>
+<!-- Item 4 -->
+<div class="flex items-center gap-4 p-4 hover:bg-zinc-700/20 transition-colors cursor-pointer group">
+<div class="flex items-center justify-center rounded-lg bg-zinc-900 border border-zinc-700 shrink-0 h-10 w-10 group-hover:border-zinc-500 transition-colors text-zinc-400 group-hover:text-white">
+<span class="material-symbols-outlined text-[20px]">security</span>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<p class="text-white text-sm font-medium truncate">Security Audit Log</p>
+<p class="text-zinc-500 text-xs font-mono truncate">0 0 1 * *</p>
+</div>
+<div class="shrink-0 bg-zinc-900 rounded px-2 py-1 border border-zinc-800">
+<p class="text-zinc-300 text-xs font-medium">in 5d</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent Runs Table -->
+<div class="xl:col-span-2 flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h3 class="text-white text-lg font-bold tracking-tight">Recent Activity</h3>
+<div class="flex gap-2">
+<span class="inline-flex items-center rounded-full bg-zinc-800 px-2 py-1 text-xs font-medium text-zinc-400 ring-1 ring-inset ring-zinc-700/50">Last 24 hours</span>
+</div>
+</div>
+<div class="bg-surface-light border border-border-dark rounded-xl overflow-hidden flex-1 flex flex-col">
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm whitespace-nowrap">
+<thead class="bg-zinc-900/50 border-b border-border-dark">
+<tr>
+<th class="px-6 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider" scope="col">Status</th>
+<th class="px-6 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider" scope="col">Workflow</th>
+<th class="px-6 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider" scope="col">Trigger</th>
+<th class="px-6 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider" scope="col">Duration</th>
+<th class="px-6 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider text-right" scope="col">Time</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-zinc-800">
+<!-- Row 1: Running -->
+<tr class="hover:bg-zinc-700/20 transition-colors">
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 rounded bg-sky-500/10 px-2 py-1 text-xs font-medium text-sky-400 ring-1 ring-inset ring-sky-500/20">
+<span class="animate-spin material-symbols-outlined text-[12px]">progress_activity</span>
+                                                Running
+                                            </span>
+</td>
+<td class="px-6 py-4 font-medium text-white">System Health Check</td>
+<td class="px-6 py-4 text-zinc-400">Cron Schedule</td>
+<td class="px-6 py-4 text-zinc-300 font-mono">--</td>
+<td class="px-6 py-4 text-right text-zinc-400 font-mono">Now</td>
+</tr>
+<!-- Row 2: Success -->
+<tr class="hover:bg-zinc-700/20 transition-colors">
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 rounded bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
+<span class="material-symbols-outlined text-[12px] icon-filled">check_circle</span>
+                                                Success
+                                            </span>
+</td>
+<td class="px-6 py-4 font-medium text-white">New User Onboarding</td>
+<td class="px-6 py-4 text-zinc-400">Webhook</td>
+<td class="px-6 py-4 text-zinc-300 font-mono">2s 450ms</td>
+<td class="px-6 py-4 text-right text-zinc-400 font-mono">5m ago</td>
+</tr>
+<!-- Row 3: Failed -->
+<tr class="hover:bg-zinc-700/20 transition-colors">
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 rounded bg-red-500/10 px-2 py-1 text-xs font-medium text-red-400 ring-1 ring-inset ring-red-500/20">
+<span class="material-symbols-outlined text-[12px] icon-filled">error</span>
+                                                Failed
+                                            </span>
+</td>
+<td class="px-6 py-4 font-medium text-white">Payment Sync</td>
+<td class="px-6 py-4 text-zinc-400">Event Sub</td>
+<td class="px-6 py-4 text-zinc-300 font-mono">14s 120ms</td>
+<td class="px-6 py-4 text-right text-zinc-400 font-mono">24m ago</td>
+</tr>
+<!-- Row 4: Success -->
+<tr class="hover:bg-zinc-700/20 transition-colors">
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 rounded bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
+<span class="material-symbols-outlined text-[12px] icon-filled">check_circle</span>
+                                                Success
+                                            </span>
+</td>
+<td class="px-6 py-4 font-medium text-white">Daily Database Backup</td>
+<td class="px-6 py-4 text-zinc-400">Cron Schedule</td>
+<td class="px-6 py-4 text-zinc-300 font-mono">4m 32s</td>
+<td class="px-6 py-4 text-right text-zinc-400 font-mono">2h ago</td>
+</tr>
+<!-- Row 5: Success -->
+<tr class="hover:bg-zinc-700/20 transition-colors">
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 rounded bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
+<span class="material-symbols-outlined text-[12px] icon-filled">check_circle</span>
+                                                Success
+                                            </span>
+</td>
+<td class="px-6 py-4 font-medium text-white">Report Generation</td>
+<td class="px-6 py-4 text-zinc-400">Manual</td>
+<td class="px-6 py-4 text-zinc-300 font-mono">45s 200ms</td>
+<td class="px-6 py-4 text-right text-zinc-400 font-mono">4h ago</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

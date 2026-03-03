@@ -20,21 +20,27 @@ from .base import Base
 
 
 class Workspace(Base):
-    """User or team workspace containing all apps and workflows."""
+    """User or team workspace containing all activities and workflows."""
 
     __tablename__ = "workspaces"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     owner_id: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    repo_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    repo_branch: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default="main")
+    repo_auth_secret: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    last_synced_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    sync_status: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    sync_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )
 
     # Relationships
-    apps: Mapped[list["App"]] = relationship(
-        "App", back_populates="workspace", cascade="all, delete-orphan"
+    activities: Mapped[list["Activity"]] = relationship(
+        "Activity", back_populates="workspace", cascade="all, delete-orphan"
     )
     workflows: Mapped[list["Workflow"]] = relationship(
         "Workflow", back_populates="workspace", cascade="all, delete-orphan"
@@ -53,10 +59,10 @@ class Workspace(Base):
     )
 
 
-class App(Base):
+class Activity(Base):
     """Reusable, code-backed capability that can be invoked as a node in workflows."""
 
-    __tablename__ = "apps"
+    __tablename__ = "activities"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
@@ -72,22 +78,22 @@ class App(Base):
     )
 
     # Relationships
-    workspace: Mapped["Workspace"] = relationship("Workspace", back_populates="apps")
-    operations: Mapped[list["AppOperation"]] = relationship(
-        "AppOperation", back_populates="app", cascade="all, delete-orphan"
+    workspace: Mapped["Workspace"] = relationship("Workspace", back_populates="activities")
+    operations: Mapped[list["ActivityOperation"]] = relationship(
+        "ActivityOperation", back_populates="activity", cascade="all, delete-orphan"
     )
     graph: Mapped[Optional["Graph"]] = relationship(
         "Graph", foreign_keys=[graph_id], post_update=True
     )
 
 
-class AppOperation(Base):
-    """Callable operation exposed by an App (used as a node type)."""
+class ActivityOperation(Base):
+    """Callable operation exposed by an Activity (used as a node type)."""
 
-    __tablename__ = "app_operations"
+    __tablename__ = "activity_operations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    app_id: Mapped[int] = mapped_column(ForeignKey("apps.id"), nullable=False)
+    activity_id: Mapped[int] = mapped_column(ForeignKey("activities.id"), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -99,11 +105,11 @@ class AppOperation(Base):
     )
 
     # Relationships
-    app: Mapped["App"] = relationship("App", back_populates="operations")
+    activity: Mapped["Activity"] = relationship("Activity", back_populates="operations")
 
 
 class Workflow(Base):
-    """Temporal workflow that orchestrates Apps and primitives."""
+    """Temporal workflow that orchestrates Activities and primitives."""
 
     __tablename__ = "workflows"
 
@@ -134,14 +140,14 @@ class Workflow(Base):
 
 
 class Graph(Base):
-    """Visual representation of a Workflow or App's composition."""
+    """Visual representation of a Workflow or Activity's composition."""
 
     __tablename__ = "graphs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
     owner_type: Mapped[str] = mapped_column(
-        Enum("workflow", "app", name="graph_owner_type"), nullable=False
+        Enum("workflow", "activity", name="graph_owner_type"), nullable=False
     )
     owner_id: Mapped[int] = mapped_column(Integer, nullable=False)
     entry_node_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -166,19 +172,19 @@ class Graph(Base):
 
 
 class Node(Base):
-    """A step on the workflow/app canvas."""
+    """A step on the workflow/activity canvas."""
 
     __tablename__ = "nodes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     graph_id: Mapped[int] = mapped_column(ForeignKey("graphs.id"), nullable=False)
     kind: Mapped[str] = mapped_column(
-        Enum("trigger", "app_operation", "primitive", "logic", name="node_kind"),
+        Enum("trigger", "activity_operation", "primitive", "logic", name="node_kind"),
         nullable=False,
     )
     label: Mapped[str] = mapped_column(String(255), nullable=False)
-    app_operation_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("app_operations.id"), nullable=True
+    activity_operation_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("activity_operations.id"), nullable=True
     )
     primitive_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     config: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
@@ -193,7 +199,7 @@ class Node(Base):
 
     # Relationships
     graph: Mapped["Graph"] = relationship("Graph", back_populates="nodes")
-    app_operation: Mapped[Optional["AppOperation"]] = relationship("AppOperation")
+    activity_operation: Mapped[Optional["ActivityOperation"]] = relationship("ActivityOperation")
 
 
 class Edge(Base):
@@ -251,7 +257,7 @@ class Run(Base):
     workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
     workflow_id: Mapped[int] = mapped_column(ForeignKey("workflows.id"), nullable=False)
     status: Mapped[str] = mapped_column(
-        Enum("queued", "running", "succeeded", "failed", name="run_status"),
+        Enum("queued", "running", "succeeded", "failed", "cancelled", name="run_status"),
         nullable=False,
         default="queued",
     )
@@ -273,14 +279,14 @@ class Run(Base):
 
 
 class AgentSession(Base):
-    """Interaction with the agent to create/modify Apps or Workflows."""
+    """Interaction with the agent to create/modify Activities or Workflows."""
 
     __tablename__ = "agent_sessions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
     target_type: Mapped[str] = mapped_column(
-        Enum("app", "workflow", name="agent_target_type"), nullable=False
+        Enum("activity", "workflow", name="agent_target_type"), nullable=False
     )
     target_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     mode: Mapped[str] = mapped_column(
@@ -302,3 +308,37 @@ class AgentSession(Base):
 
     # Relationships
     workspace: Mapped["Workspace"] = relationship("Workspace", back_populates="agent_sessions")
+    messages: Mapped[list["AgentMessage"]] = relationship(
+        "AgentMessage", back_populates="session", cascade="all, delete-orphan",
+        order_by="AgentMessage.created_at",
+    )
+
+
+class Secret(Base):
+    """Encrypted secret for use by activities at runtime."""
+
+    __tablename__ = "secrets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    encrypted_value: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class AgentMessage(Base):
+    """Individual message in an agent chat session."""
+
+    __tablename__ = "agent_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[int] = mapped_column(ForeignKey("agent_sessions.id"), nullable=False)
+    role: Mapped[str] = mapped_column(
+        Enum("user", "assistant", "system", name="agent_message_role"), nullable=False
+    )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    action: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON-encoded action
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    # Relationships
+    session: Mapped["AgentSession"] = relationship("AgentSession", back_populates="messages")

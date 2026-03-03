@@ -15,6 +15,18 @@ class WorkspaceCreate(BaseModel):
 
     owner_id: str
     name: str
+    repo_url: Optional[str] = None
+    repo_branch: Optional[str] = "main"
+    repo_auth_secret: Optional[str] = None
+
+
+class WorkspaceUpdate(BaseModel):
+    """Schema for updating a workspace."""
+
+    name: Optional[str] = None
+    repo_url: Optional[str] = None
+    repo_branch: Optional[str] = None
+    repo_auth_secret: Optional[str] = None
 
 
 class WorkspaceResponse(BaseModel):
@@ -23,6 +35,12 @@ class WorkspaceResponse(BaseModel):
     id: int
     owner_id: str
     name: str
+    repo_url: Optional[str] = None
+    repo_branch: Optional[str] = None
+    repo_auth_secret: Optional[str] = None
+    last_synced_at: Optional[datetime] = None
+    sync_status: Optional[str] = None
+    sync_error: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -30,13 +48,24 @@ class WorkspaceResponse(BaseModel):
         from_attributes = True
 
 
+class RepoSyncResponse(BaseModel):
+    """Schema for repo sync result."""
+
+    workspace_id: int
+    sync_status: str
+    sync_error: Optional[str] = None
+    last_synced_at: Optional[datetime] = None
+    discovered_activities: List[str] = []
+    discovered_workflows: List[str] = []
+
+
 # ============================================================================
-# App Schemas
+# Activity Schemas
 # ============================================================================
 
 
-class AppCreate(BaseModel):
-    """Schema for creating an app."""
+class ActivityCreate(BaseModel):
+    """Schema for creating an activity."""
 
     name: str
     slug: str
@@ -45,19 +74,19 @@ class AppCreate(BaseModel):
     category: Optional[str] = None
 
 
-class AppUpdate(BaseModel):
-    """Schema for updating an app."""
+class ActivityUpdate(BaseModel):
+    """Schema for updating an activity."""
 
     name: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
 
 
-class AppOperationResponse(BaseModel):
-    """Schema for app operation response."""
+class ActivityOperationResponse(BaseModel):
+    """Schema for activity operation response."""
 
     id: int
-    app_id: int
+    activity_id: int
     name: str
     display_name: str
     description: Optional[str]
@@ -70,8 +99,8 @@ class AppOperationResponse(BaseModel):
         from_attributes = True
 
 
-class AppResponse(BaseModel):
-    """Schema for app response."""
+class ActivityResponse(BaseModel):
+    """Schema for activity response."""
 
     id: int
     workspace_id: int
@@ -83,19 +112,19 @@ class AppResponse(BaseModel):
     graph_id: Optional[int]
     created_at: datetime
     updated_at: datetime
-    operations: List[AppOperationResponse] = []
+    operations: List[ActivityOperationResponse] = []
 
     class Config:
         from_attributes = True
 
 
 # ============================================================================
-# AppOperation Schemas
+# ActivityOperation Schemas
 # ============================================================================
 
 
-class AppOperationCreate(BaseModel):
-    """Schema for creating an app operation."""
+class ActivityOperationCreate(BaseModel):
+    """Schema for creating an activity operation."""
 
     name: str
     display_name: str
@@ -156,7 +185,7 @@ class NodeResponse(BaseModel):
     graph_id: int
     kind: str
     label: str
-    app_operation_id: Optional[int]
+    activity_operation_id: Optional[int]
     primitive_type: Optional[str]
     config: str
     config_schema: str
@@ -211,7 +240,7 @@ class NodeCreate(BaseModel):
     config: str = "{}"
     config_schema: str = "{}"
     ui_position: str = '{"x": 0, "y": 0}'
-    app_operation_id: Optional[int] = None
+    activity_operation_id: Optional[int] = None
     primitive_type: Optional[str] = None
 
 
@@ -329,7 +358,7 @@ class RunResponse(BaseModel):
 class AgentSessionCreate(BaseModel):
     """Schema for creating an agent session."""
 
-    target_type: str  # "app" or "workflow"
+    target_type: str  # "activity" or "workflow"
     mode: str  # "create", "modify", "debug"
     user_prompt: str
     target_id: Optional[int] = None
@@ -343,6 +372,20 @@ class AgentSessionUpdate(BaseModel):
     code_diff_summary: Optional[str] = None
     status: Optional[str] = None
     target_id: Optional[int] = None
+
+
+class AgentMessageResponse(BaseModel):
+    """Schema for agent message response."""
+
+    id: int
+    session_id: int
+    role: str
+    content: str
+    action: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 
 class AgentSessionResponse(BaseModel):
@@ -360,6 +403,15 @@ class AgentSessionResponse(BaseModel):
     status: str
     created_at: datetime
     updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AgentSessionDetailResponse(AgentSessionResponse):
+    """Schema for agent session with messages."""
+
+    messages: List[AgentMessageResponse] = []
 
     class Config:
         from_attributes = True

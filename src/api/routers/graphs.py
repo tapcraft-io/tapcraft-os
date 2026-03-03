@@ -64,7 +64,7 @@ async def create_node(
         config=node_data.config,
         config_schema=node_data.config_schema,
         ui_position=node_data.ui_position,
-        app_operation_id=node_data.app_operation_id,
+        activity_operation_id=node_data.activity_operation_id,
         primitive_type=node_data.primitive_type,
     )
     return node

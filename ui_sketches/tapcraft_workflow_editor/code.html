@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tapcraft Workflow Editor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ee8c2b",
+                        "primary-dark": "#d97b20",
+                        "background-light": "#f8f7f6",
+                        "background-dark": "#221910",
+                        "surface-dark": "#2e2318",
+                        "surface-border": "#483623",
+                        "text-muted": "#c9ad92",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for technical look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #221910; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #483623; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #674d32; 
+        }
+        
+        /* Node grid background */
+        .bg-grid-pattern {
+            background-size: 20px 20px;
+            background-image: radial-gradient(circle, #483623 1px, transparent 1px);
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-white font-display h-screen flex flex-col overflow-hidden selection:bg-primary/30">
+<!-- Top Navigation -->
+<header class="flex flex-shrink-0 items-center justify-between border-b border-surface-border bg-surface-dark px-4 py-2 z-20">
+<div class="flex items-center gap-6">
+<!-- Logo -->
+<div class="flex items-center gap-2">
+<div class="size-6 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M24 4H6V17.3333V30.6667H24V44H42V30.6667V17.3333H24V4Z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+<h1 class="text-white text-lg font-bold tracking-tight">Tapcraft</h1>
+</div>
+<!-- Breadcrumbs -->
+<div class="h-6 w-px bg-surface-border"></div>
+<div class="flex items-center gap-2 text-sm">
+<a class="text-text-muted hover:text-white transition-colors" href="#">Workflows</a>
+<span class="text-surface-border material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="font-medium text-white">Order Processing Automation</span>
+<span class="ml-2 px-2 py-0.5 rounded bg-green-900/30 text-green-400 text-xs border border-green-800">Active</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1">
+<button class="p-2 text-text-muted hover:text-white hover:bg-surface-border/50 rounded transition-colors">
+<span class="material-symbols-outlined text-[20px]">undo</span>
+</button>
+<button class="p-2 text-text-muted hover:text-white hover:bg-surface-border/50 rounded transition-colors">
+<span class="material-symbols-outlined text-[20px]">redo</span>
+</button>
+</div>
+<div class="h-6 w-px bg-surface-border"></div>
+<div class="flex items-center gap-3">
+<span class="text-xs text-text-muted">Last saved 2m ago</span>
+<div class="size-8 rounded-full bg-surface-border bg-center bg-cover" data-alt="User avatar profile picture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCzUUnGPlTxwnO-bYj5txTGjEC7djjyhcYKpaQ0bGAIvoTeRfTgMSaVRZSlkxm_EgfkmCcyRTalWFSunx0FoaeFLZh8RvvhcZ_MJIAbDnxJrpRO7CBfVjbHJ4H2bofNqzA1O7WtJa60WyzfzzpvF2pVxhTbkuRMktJblWCiGnQy9YcK_vD9pBbuoS_bhZ0wIP3Nprv2izR8cLmNl3SuF1DJxUEY8HQBzisMoZeJ_fjF7irp26VibSdGHHMZ9MLwphyYmOt7lJQlwbw");'></div>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<div class="flex flex-1 overflow-hidden relative">
+<!-- Left Pane: Node Palette -->
+<aside class="w-64 flex flex-col border-r border-surface-border bg-surface-dark z-10 flex-shrink-0">
+<div class="p-4 border-b border-surface-border">
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted material-symbols-outlined text-[18px]">search</span>
+<input class="w-full bg-background-dark border border-surface-border rounded pl-9 pr-3 py-2 text-sm text-white placeholder-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" placeholder="Search nodes..." type="text"/>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto">
+<div class="flex flex-col">
+<!-- Triggers Accordion -->
+<details class="group" open="">
+<summary class="flex cursor-pointer items-center justify-between px-4 py-3 hover:bg-surface-border/30 select-none">
+<span class="text-sm font-semibold text-white">Triggers</span>
+<span class="material-symbols-outlined text-text-muted text-[18px] group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="px-2 pb-3 flex flex-col gap-1">
+<div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-border/50 cursor-grab active:cursor-grabbing border border-transparent hover:border-surface-border transition-all">
+<div class="p-1.5 rounded bg-blue-900/30 text-blue-400">
+<span class="material-symbols-outlined text-[18px]">shopping_cart</span>
+</div>
+<span class="text-sm text-text-muted">New Order</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-border/50 cursor-grab active:cursor-grabbing border border-transparent hover:border-surface-border transition-all">
+<div class="p-1.5 rounded bg-purple-900/30 text-purple-400">
+<span class="material-symbols-outlined text-[18px]">webhook</span>
+</div>
+<span class="text-sm text-text-muted">Webhook</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-border/50 cursor-grab active:cursor-grabbing border border-transparent hover:border-surface-border transition-all">
+<div class="p-1.5 rounded bg-orange-900/30 text-orange-400">
+<span class="material-symbols-outlined text-[18px]">schedule</span>
+</div>
+<span class="text-sm text-text-muted">Schedule</span>
+</div>
+</div>
+</details>
+<!-- App Operations Accordion -->
+<details class="group" open="">
+<summary class="flex cursor-pointer items-center justify-between px-4 py-3 hover:bg-surface-border/30 select-none border-t border-surface-border/50">
+<span class="text-sm font-semibold text-white">App Operations</span>
+<span class="material-symbols-outlined text-text-muted text-[18px] group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="px-2 pb-3 flex flex-col gap-1">
+<div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-border/50 cursor-grab active:cursor-grabbing border border-transparent hover:border-surface-border transition-all">
+<div class="p-1.5 rounded bg-green-900/30 text-green-400">
+<span class="material-symbols-outlined text-[18px]">filter_alt</span>
+</div>
+<span class="text-sm text-text-muted">Filter Data</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-border/50 cursor-grab active:cursor-grabbing border border-transparent hover:border-surface-border transition-all">
+<div class="p-1.5 rounded bg-[#E01E5A]/20 text-[#E01E5A]">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+</div>
+<span class="text-sm text-text-muted">Slack Message</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-border/50 cursor-grab active:cursor-grabbing border border-transparent hover:border-surface-border transition-all">
+<div class="p-1.5 rounded bg-yellow-900/30 text-yellow-400">
+<span class="material-symbols-outlined text-[18px]">mail</span>
+</div>
+<span class="text-sm text-text-muted">Send Email</span>
+</div>
+</div>
+</details>
+<!-- Primitives Accordion -->
+<details class="group">
+<summary class="flex cursor-pointer items-center justify-between px-4 py-3 hover:bg-surface-border/30 select-none border-t border-surface-border/50">
+<span class="text-sm font-semibold text-white">Primitives</span>
+<span class="material-symbols-outlined text-text-muted text-[18px] group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="px-2 pb-3 flex flex-col gap-1">
+<div class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-border/50 cursor-grab active:cursor-grabbing border border-transparent hover:border-surface-border transition-all">
+<div class="p-1.5 rounded bg-gray-700/30 text-gray-300">
+<span class="material-symbols-outlined text-[18px]">code</span>
+</div>
+<span class="text-sm text-text-muted">Run JS Code</span>
+</div>
+</div>
+</details>
+</div>
+</div>
+</aside>
+<!-- Center Pane: Canvas -->
+<main class="flex-1 relative bg-background-dark bg-grid-pattern overflow-hidden">
+<!-- Canvas Controls -->
+<div class="absolute bottom-6 left-6 z-10 flex flex-col gap-2">
+<div class="flex flex-col bg-surface-dark border border-surface-border rounded shadow-lg overflow-hidden">
+<button class="p-2 hover:bg-surface-border hover:text-primary text-text-muted transition-colors border-b border-surface-border/50">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+<button class="p-2 hover:bg-surface-border hover:text-primary text-text-muted transition-colors">
+<span class="material-symbols-outlined text-[20px]">remove</span>
+</button>
+</div>
+<button class="p-2 bg-surface-dark border border-surface-border rounded shadow-lg hover:bg-surface-border hover:text-primary text-text-muted transition-colors" title="Fit to screen">
+<span class="material-symbols-outlined text-[20px]">center_focus_strong</span>
+</button>
+</div>
+<!-- Canvas Area (Simulated Nodes) -->
+<div class="w-full h-full relative cursor-grab active:cursor-grabbing">
+<!-- Connection Lines (SVG) -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none z-0">
+<!-- Line 1: Trigger to Filter -->
+<path d="M 320 200 C 400 200, 400 320, 480 320" fill="none" stroke="#674d32" stroke-width="2"></path>
+<circle cx="480" cy="320" fill="#674d32" r="3"></circle>
+<!-- Line 2: Filter to Slack -->
+<path class="drop-shadow-[0_0_3px_rgba(238,140,43,0.5)]" d="M 680 320 C 760 320, 760 250, 840 250" fill="none" stroke="#ee8c2b" stroke-width="2"></path>
+<circle cx="840" cy="250" fill="#ee8c2b" r="3"></circle>
+</svg>
+<!-- Node 1: Trigger -->
+<div class="absolute top-[160px] left-[120px] w-[200px] z-10">
+<div class="group relative bg-surface-dark border border-surface-border rounded shadow-[0_4px_12px_rgba(0,0,0,0.3)] hover:border-primary/50 transition-colors">
+<div class="p-3 border-b border-surface-border flex items-center gap-3">
+<div class="p-1.5 rounded bg-blue-900/30 text-blue-400">
+<span class="material-symbols-outlined text-[20px]">shopping_cart</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-white">New Order</span>
+<span class="text-[10px] text-text-muted uppercase tracking-wider">Trigger</span>
+</div>
+<div class="ml-auto">
+<span class="material-symbols-outlined text-text-muted hover:text-white cursor-pointer text-[18px]">more_vert</span>
+</div>
+</div>
+<div class="px-3 py-2 bg-surface-dark/50">
+<div class="flex items-center justify-between text-xs text-text-muted">
+<span>Output: JSON</span>
+<span class="size-2 rounded-full bg-green-500"></span>
+</div>
+</div>
+<!-- Output Port -->
+<div class="absolute right-[-6px] top-1/2 -translate-y-1/2 size-3 rounded-full bg-surface-border border-2 border-surface-dark hover:bg-primary cursor-crosshair"></div>
+</div>
+</div>
+<!-- Node 2: Filter (App Op) -->
+<div class="absolute top-[280px] left-[480px] w-[200px] z-10">
+<div class="group relative bg-surface-dark border border-primary ring-1 ring-primary/20 rounded shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-colors">
+<div class="p-3 border-b border-surface-border flex items-center gap-3">
+<div class="p-1.5 rounded bg-green-900/30 text-green-400">
+<span class="material-symbols-outlined text-[20px]">filter_alt</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-white">Filter Value</span>
+<span class="text-[10px] text-text-muted uppercase tracking-wider">Logic</span>
+</div>
+<div class="ml-auto">
+<span class="material-symbols-outlined text-text-muted hover:text-white cursor-pointer text-[18px]">more_vert</span>
+</div>
+</div>
+<div class="px-3 py-2 bg-surface-dark/50">
+<p class="text-xs text-text-muted truncate">value &gt; $1000</p>
+</div>
+<!-- Input Port -->
+<div class="absolute left-[-6px] top-1/2 -translate-y-1/2 size-3 rounded-full bg-surface-border border-2 border-surface-dark hover:bg-primary cursor-crosshair"></div>
+<!-- Output Port -->
+<div class="absolute right-[-6px] top-1/2 -translate-y-1/2 size-3 rounded-full bg-primary border-2 border-surface-dark cursor-crosshair shadow-[0_0_5px_rgba(238,140,43,0.8)]"></div>
+</div>
+</div>
+<!-- Node 3: Slack (Action) -->
+<div class="absolute top-[210px] left-[840px] w-[200px] z-10">
+<div class="group relative bg-surface-dark border border-surface-border rounded shadow-[0_4px_12px_rgba(0,0,0,0.3)] hover:border-primary/50 transition-colors">
+<div class="p-3 border-b border-surface-border flex items-center gap-3">
+<div class="p-1.5 rounded bg-[#E01E5A]/20 text-[#E01E5A]">
+<span class="material-symbols-outlined text-[20px]">chat</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-white">Slack Notify</span>
+<span class="text-[10px] text-text-muted uppercase tracking-wider">Action</span>
+</div>
+<div class="ml-auto">
+<span class="material-symbols-outlined text-text-muted hover:text-white cursor-pointer text-[18px]">more_vert</span>
+</div>
+</div>
+<div class="px-3 py-2 bg-surface-dark/50">
+<p class="text-xs text-text-muted truncate">#sales-alerts</p>
+</div>
+<!-- Input Port -->
+<div class="absolute left-[-6px] top-1/2 -translate-y-1/2 size-3 rounded-full bg-primary border-2 border-surface-dark hover:bg-primary cursor-crosshair"></div>
+</div>
+</div>
+</div>
+<!-- Bottom Floating Action Bar -->
+<div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
+<div class="flex items-center gap-1 p-1.5 bg-surface-dark border border-surface-border rounded-lg shadow-2xl">
+<button class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm font-medium rounded transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">play_arrow</span>
+                        Run Once
+                    </button>
+<div class="w-px h-6 bg-surface-border mx-1"></div>
+<button class="flex items-center gap-2 px-4 py-2 hover:bg-surface-border/50 text-white text-sm font-medium rounded transition-colors">
+<span class="material-symbols-outlined text-[18px] text-green-400">check_circle</span>
+                        Validate
+                    </button>
+<button class="flex items-center gap-2 px-4 py-2 hover:bg-surface-border/50 text-white text-sm font-medium rounded transition-colors group">
+<span class="material-symbols-outlined text-[18px] text-purple-400 group-hover:animate-pulse">auto_awesome</span>
+                        Ask Agent to Modify
+                    </button>
+</div>
+</div>
+</main>
+<!-- Right Pane: Inspector -->
+<aside class="w-80 flex flex-col border-l border-surface-border bg-surface-dark z-10 flex-shrink-0">
+<!-- Tabs -->
+<div class="flex border-b border-surface-border">
+<button class="flex-1 py-3 text-sm font-medium text-white border-b-2 border-primary bg-surface-border/10">Node</button>
+<button class="flex-1 py-3 text-sm font-medium text-text-muted hover:text-white transition-colors">Workflow</button>
+</div>
+<!-- Content -->
+<div class="flex-1 overflow-y-auto p-5">
+<div class="flex flex-col gap-6">
+<!-- Header for Selected Node -->
+<div class="flex items-start gap-3">
+<div class="mt-1 p-2 rounded bg-green-900/30 text-green-400">
+<span class="material-symbols-outlined text-[24px]">filter_alt</span>
+</div>
+<div>
+<h2 class="text-base font-bold text-white leading-tight">Filter Value</h2>
+<p class="text-xs text-text-muted mt-1">Filters incoming JSON stream based on conditions.</p>
+</div>
+</div>
+<hr class="border-surface-border"/>
+<!-- Form -->
+<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold text-text-muted uppercase tracking-wider">Node Name</label>
+<input class="w-full bg-background-dark border border-surface-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" type="text" value="Filter Value"/>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold text-text-muted uppercase tracking-wider">Condition Type</label>
+<div class="relative">
+<select class="w-full appearance-none bg-background-dark border border-surface-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+<option>Number Comparison</option>
+<option>String Match</option>
+<option>Regex</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-text-muted">
+<span class="material-symbols-outlined text-[20px]">expand_more</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold text-text-muted uppercase tracking-wider">Field Key</label>
+<div class="flex items-center bg-background-dark border border-surface-border rounded px-3 py-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary">
+<span class="text-text-muted select-none text-xs mr-2 font-mono">data.</span>
+<input class="bg-transparent border-none p-0 text-sm text-white w-full focus:ring-0 placeholder-text-muted/50" placeholder="key_name" type="text" value="order_total"/>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex justify-between">
+<label class="text-xs font-semibold text-text-muted uppercase tracking-wider">Threshold</label>
+<span class="text-[10px] text-primary cursor-pointer hover:underline">Use Variable</span>
+</div>
+<input class="w-full bg-background-dark border border-surface-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-mono" type="number" value="1000"/>
+</div>
+<div class="flex items-center justify-between py-2">
+<div class="flex flex-col">
+<span class="text-sm font-medium text-white">Strict Mode</span>
+<span class="text-xs text-text-muted">Fail if key missing</span>
+</div>
+<!-- Toggle Switch -->
+<button aria-checked="true" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out bg-primary" role="switch">
+<span aria-hidden="true" class="translate-x-5 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+</button>
+</div>
+</div>
+<!-- JSON Editor Preview Stub -->
+<div class="flex flex-col gap-2 mt-2">
+<label class="text-xs font-semibold text-text-muted uppercase tracking-wider">Test Payload</label>
+<div class="w-full h-32 bg-background-dark border border-surface-border rounded p-3 font-mono text-xs overflow-auto">
+<div class="text-purple-400">{</div>
+<div class="pl-4">
+<span class="text-blue-400">"id"</span>: <span class="text-green-400">"ord_8823"</span>,
+                            </div>
+<div class="pl-4">
+<span class="text-blue-400">"customer"</span>: <span class="text-green-400">"acme_corp"</span>,
+                            </div>
+<div class="pl-4">
+<span class="text-blue-400">"order_total"</span>: <span class="text-orange-400">1250.00</span>
+</div>
+<div class="text-purple-400">}</div>
+</div>
+</div>
+<button class="w-full py-2 mt-2 border border-surface-border rounded text-sm text-text-muted hover:text-white hover:bg-surface-border/30 transition-colors">
+                        View Node Logs
+                    </button>
+</div>
+</div>
+<!-- Inspector Footer -->
+<div class="p-4 border-t border-surface-border bg-surface-dark">
+<div class="flex items-center justify-between text-xs text-text-muted">
+<span>Node ID: <span class="font-mono text-white">n_8a2b3c</span></span>
+<span class="flex items-center gap-1"><span class="size-2 rounded-full bg-green-500"></span> Ready</span>
+</div>
+</div>
+</aside>
+</div>
+</body></html>
