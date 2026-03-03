@@ -1,63 +1,99 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { RocketLaunchIcon, CubeIcon, BoltIcon, SparklesIcon, PlayIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '../components/AuthGate';
 
 const navItems = [
-  { to: '/', label: 'Home', icon: RocketLaunchIcon },
-  { to: '/apps', label: 'Apps', icon: CubeIcon },
-  { to: '/workflows', label: 'Workflows', icon: BoltIcon },
-  { to: '/agent', label: 'Agent', icon: SparklesIcon },
-  { path: '/runs', label: 'Runs', icon: PlayIcon },
-  { to: '/settings', label: 'Settings', icon: Cog6ToothIcon }
+  { to: '/', label: 'Dashboard', icon: 'dashboard' },
+  { to: '/activities', label: 'Activities', icon: 'apps' },
+  { to: '/workflows', label: 'Workflows', icon: 'account_tree' },
+  { to: '/runs', label: 'Runs', icon: 'history' },
+  { to: '/secrets', label: 'Secrets', icon: 'key' },
 ];
 
 const AppShell = () => {
   const location = useLocation();
+  const { logout } = useAuth();
 
   return (
-    <div className="flex min-h-screen bg-slate-950 text-slate-100">
+    <div className="flex h-screen w-full overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-64 border-r border-slate-800 bg-slate-900/50 px-4 py-6">
-        <Link to="/" className="flex items-center gap-3 mb-8 px-2">
-          <RocketLaunchIcon className="h-8 w-8 text-orange-500" />
-          <div>
-            <div className="text-lg font-semibold">Tapcraft</div>
-            <div className="text-xs text-slate-500">Automation OS</div>
-          </div>
-        </Link>
+      <aside className="w-64 h-full bg-surface-dark border-r border-border-dark flex flex-col shrink-0">
+        {/* Logo */}
+        <div className="p-6 pb-2">
+          <Link to="/" className="flex flex-col gap-1">
+            <h1 className="text-white text-xl font-bold tracking-tight flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary icon-filled">terminal</span>
+              Tapcraft
+            </h1>
+            <p className="text-zinc-500 text-xs font-medium tracking-wider uppercase ml-8">Automation OS</p>
+          </Link>
+        </div>
 
-        <nav className="space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to));
+        {/* Navigation */}
+        <div className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-6">
+          <nav className="flex flex-col gap-1">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.to ||
+                (item.to !== '/' && location.pathname.startsWith(item.to));
 
-            return (
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-primary/10 text-primary border border-primary/20'
+                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                  }`}
+                >
+                  <span className={`material-symbols-outlined ${isActive ? 'icon-filled' : ''}`}>
+                    {item.icon}
+                  </span>
+                  <span className="text-sm font-medium">{item.label}</span>
+                </NavLink>
+              );
+            })}
+          </nav>
+
+          {/* Bottom section */}
+          <div className="mt-auto flex flex-col gap-4">
+            {/* New Workflow CTA */}
+            <Link
+              to="/workflows"
+              className="flex w-full items-center justify-center rounded-lg h-10 px-4 bg-primary text-zinc-950 hover:bg-primary/90 transition-colors text-sm font-bold shadow-lg shadow-primary/20"
+            >
+              <span className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[20px]">add</span>
+                New Workflow
+              </span>
+            </Link>
+
+            {/* Settings */}
+            <div className="flex flex-col gap-1 border-t border-zinc-800 pt-4">
               <NavLink
-                key={item.to}
-                to={item.to}
-                className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                  isActive
-                    ? 'bg-orange-500/10 text-orange-400 font-medium'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                to="/settings"
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                  location.pathname === '/settings'
+                    ? 'bg-primary/10 text-primary border border-primary/20'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
                 }`}
               >
-                <Icon className="h-5 w-5" />
-                {item.label}
+                <span className="material-symbols-outlined">settings</span>
+                <span className="text-sm font-medium">Settings</span>
               </NavLink>
-            );
-          })}
-        </nav>
-
-        <div className="mt-8 px-3 py-4 rounded-md bg-slate-800/30 border border-slate-700/50">
-          <div className="text-xs text-slate-500 mb-2">Status</div>
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-sm text-slate-300">System Online</span>
+              <button
+                onClick={logout}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-zinc-400 hover:text-white hover:bg-zinc-800 w-full"
+              >
+                <span className="material-symbols-outlined">logout</span>
+                <span className="text-sm font-medium">Sign Out</span>
+              </button>
+            </div>
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 h-full overflow-y-auto">
         <Outlet />
       </main>
     </div>

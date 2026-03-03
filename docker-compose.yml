@@ -1,53 +1,105 @@
-version: "3.9"
-
 services:
   temporal:
-    image: temporalio/auto-setup:1.21.0
-    environment:
-      - DB=sqlite
+    image: temporalio/temporal:latest
+    command: ["server", "start-dev", "--ip", "0.0.0.0"]
     ports:
-      - "7233:7233"
+      - "7234:7233"
+      - "8082:8233"
     healthcheck:
-      test: ["CMD", "temporal", "server", "status"]
+      test: ["CMD", "temporal", "workflow", "list", "--address", "localhost:7233"]
       interval: 10s
       timeout: 5s
-      retries: 5
-
-  temporal-ui:
-    image: temporalio/ui:2.23.0
-    ports:
-      - "8080:8080"
-    environment:
-      - TEMPORAL_ADDRESS=temporal:7233
-    depends_on:
-      - temporal
+      retries: 10
+      start_period: 30s
 
   api:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["poetry", "run", "uvicorn", "src.api.server:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["uvicorn", "src.api.server:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     environment:
       - PYTHONUNBUFFERED=1
       - TEMPORAL_ADDRESS=temporal:7233
+      - DATABASE_URL=sqlite+aiosqlite:///./data/tapcraft.db
       - GIT_REMOTE_URL=${GIT_REMOTE_URL:-}
       - TZ_DEFAULT=${TZ_DEFAULT:-UTC}
+      # API key authentication (auto-generated if not set)
+      - TAPCRAFT_API_KEY=${TAPCRAFT_API_KEY:-}
+      # BYOK Configuration (takes precedence)
+      - COPILOT_PROVIDER=${COPILOT_PROVIDER:-anthropic}
+      - COPILOT_API_KEY=${COPILOT_API_KEY:-}
+      - COPILOT_MODEL=${COPILOT_MODEL:-}
+      # Fallback to internal keys
+      - INTERNAL_ANTHROPIC_LARGE_API_KEY=${INTERNAL_ANTHROPIC_LARGE_API_KEY:-}
+      - INTERNAL_ANTHROPIC_LARGE_MODEL=${INTERNAL_ANTHROPIC_LARGE_MODEL:-claude-sonnet-4-20250514}
+      - INTERNAL_ANTHROPIC_LARGE_URL=${INTERNAL_ANTHROPIC_LARGE_URL:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      # Secrets encryption key
+      - TAPCRAFT_SECRET_KEY=${TAPCRAFT_SECRET_KEY:-}
+      # Workflow environment config
+      - TAPCRAFT_WF_GTM_API_BASE=${TAPCRAFT_WF_GTM_API_BASE:-}
+      - TAPCRAFT_WF_DEFAULT_USER_AGENT=${TAPCRAFT_WF_DEFAULT_USER_AGENT:-TapcraftBot/1.0}
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
-      - .:/app
+      - ./src:/app/src
+      - ./data:/app/data
+      - workspace:/app/workspace
     depends_on:
       - temporal
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: "1.0"
 
   worker:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["poetry", "run", "python", "-m", "src.worker.worker"]
+    restart: unless-stopped
+    command: ["python", "-m", "src.worker.worker"]
     environment:
       - PYTHONUNBUFFERED=1
       - TEMPORAL_ADDRESS=temporal:7233
+      - DATABASE_URL=sqlite+aiosqlite:///./data/tapcraft.db
+      # BYOK Configuration (takes precedence)
+      - COPILOT_PROVIDER=${COPILOT_PROVIDER:-anthropic}
+      - COPILOT_API_KEY=${COPILOT_API_KEY:-}
+      - COPILOT_MODEL=${COPILOT_MODEL:-}
+      # Fallback to internal keys
+      - INTERNAL_ANTHROPIC_LARGE_API_KEY=${INTERNAL_ANTHROPIC_LARGE_API_KEY:-}
+      - INTERNAL_ANTHROPIC_LARGE_MODEL=${INTERNAL_ANTHROPIC_LARGE_MODEL:-claude-sonnet-4-20250514}
+      - INTERNAL_ANTHROPIC_LARGE_URL=${INTERNAL_ANTHROPIC_LARGE_URL:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      # Secrets encryption key
+      - TAPCRAFT_SECRET_KEY=${TAPCRAFT_SECRET_KEY:-}
+      # Workflow environment config
+      - TAPCRAFT_WF_GTM_API_BASE=${TAPCRAFT_WF_GTM_API_BASE:-}
+      - TAPCRAFT_WF_DEFAULT_USER_AGENT=${TAPCRAFT_WF_DEFAULT_USER_AGENT:-TapcraftBot/1.0}
     volumes:
-      - .:/app
+      - ./src:/app/src
+      - ./data:/app/data
+      - workspace:/app/workspace
     depends_on:
       - temporal
+    healthcheck:
+      test: ["CMD", "python", "-c", "print('ok')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: "1.0"
+
+volumes:
+  workspace:

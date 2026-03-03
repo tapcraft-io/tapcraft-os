@@ -8,8 +8,8 @@ from sqlalchemy.orm import selectinload
 
 from src.db.models import (
     Workspace,
-    App,
-    AppOperation,
+    Activity,
+    ActivityOperation,
     Workflow,
     Graph,
     Node,
@@ -17,6 +17,7 @@ from src.db.models import (
     Schedule,
     Run,
     AgentSession,
+    AgentMessage,
 )
 
 
@@ -26,11 +27,49 @@ from src.db.models import (
 
 
 async def create_workspace(
-    db: AsyncSession, owner_id: str, name: str
+    db: AsyncSession,
+    owner_id: str,
+    name: str,
+    repo_url: Optional[str] = None,
+    repo_branch: Optional[str] = "main",
+    repo_auth_secret: Optional[str] = None,
 ) -> Workspace:
     """Create a new workspace."""
-    workspace = Workspace(owner_id=owner_id, name=name)
+    workspace = Workspace(
+        owner_id=owner_id,
+        name=name,
+        repo_url=repo_url,
+        repo_branch=repo_branch,
+        repo_auth_secret=repo_auth_secret,
+    )
     db.add(workspace)
+    await db.commit()
+    await db.refresh(workspace)
+    return workspace
+
+
+async def update_workspace(
+    db: AsyncSession,
+    workspace_id: int,
+    name: Optional[str] = None,
+    repo_url: Optional[str] = None,
+    repo_branch: Optional[str] = None,
+    repo_auth_secret: Optional[str] = None,
+) -> Optional[Workspace]:
+    """Update a workspace."""
+    workspace = await get_workspace(db, workspace_id)
+    if not workspace:
+        return None
+
+    if name is not None:
+        workspace.name = name
+    if repo_url is not None:
+        workspace.repo_url = repo_url
+    if repo_branch is not None:
+        workspace.repo_branch = repo_branch
+    if repo_auth_secret is not None:
+        workspace.repo_auth_secret = repo_auth_secret
+
     await db.commit()
     await db.refresh(workspace)
     return workspace
@@ -54,11 +93,11 @@ async def list_workspaces(
 
 
 # ============================================================================
-# App CRUD
+# Activity CRUD
 # ============================================================================
 
 
-async def create_app(
+async def create_activity(
     db: AsyncSession,
     workspace_id: int,
     name: str,
@@ -66,9 +105,9 @@ async def create_app(
     code_module_path: str,
     description: Optional[str] = None,
     category: Optional[str] = None,
-) -> App:
-    """Create a new app."""
-    app = App(
+) -> Activity:
+    """Create a new activity."""
+    activity = Activity(
         workspace_id=workspace_id,
         name=name,
         slug=slug,
@@ -76,85 +115,90 @@ async def create_app(
         description=description,
         category=category,
     )
-    db.add(app)
+    db.add(activity)
     await db.commit()
-    await db.refresh(app)
-    return app
+    # Re-fetch with operations eagerly loaded to avoid lazy-loading in async
+    result = await db.execute(
+        select(Activity)
+        .where(Activity.id == activity.id)
+        .options(selectinload(Activity.operations))
+    )
+    return result.scalar_one()
 
 
-async def get_app(
-    db: AsyncSession, app_id: int, load_operations: bool = False
-) -> Optional[App]:
-    """Get an app by ID."""
-    query = select(App).where(App.id == app_id)
+async def get_activity(
+    db: AsyncSession, activity_id: int, load_operations: bool = False
+) -> Optional[Activity]:
+    """Get an activity by ID."""
+    query = select(Activity).where(Activity.id == activity_id)
     if load_operations:
-        query = query.options(selectinload(App.operations))
+        query = query.options(selectinload(Activity.operations))
     result = await db.execute(query)
     return result.scalars().first()
 
 
-async def list_apps(db: AsyncSession, workspace_id: int) -> List[App]:
-    """List all apps in a workspace."""
+async def list_activities(db: AsyncSession, workspace_id: int) -> List[Activity]:
+    """List all activities in a workspace."""
     result = await db.execute(
-        select(App)
-        .where(App.workspace_id == workspace_id)
-        .options(selectinload(App.operations))
+        select(Activity)
+        .where(Activity.workspace_id == workspace_id)
+        .options(selectinload(Activity.operations))
     )
     return list(result.scalars().all())
 
 
-async def update_app(
+async def update_activity(
     db: AsyncSession,
-    app_id: int,
+    activity_id: int,
     name: Optional[str] = None,
     description: Optional[str] = None,
     category: Optional[str] = None,
-) -> Optional[App]:
-    """Update an app."""
-    app = await get_app(db, app_id)
-    if not app:
+) -> Optional[Activity]:
+    """Update an activity."""
+    activity = await get_activity(db, activity_id)
+    if not activity:
         return None
 
     if name is not None:
-        app.name = name
+        activity.name = name
     if description is not None:
-        app.description = description
+        activity.description = description
     if category is not None:
-        app.category = category
+        activity.category = category
 
     await db.commit()
-    await db.refresh(app)
-    return app
+    await db.refresh(activity)
+    return activity
 
 
-async def delete_app(db: AsyncSession, app_id: int) -> bool:
-    """Delete an app."""
-    app = await get_app(db, app_id)
-    if not app:
+async def delete_activity(db: AsyncSession, activity_id: int) -> bool:
+    """Delete an activity."""
+    activity = await get_activity(db, activity_id)
+    if not activity:
         return False
 
-    await db.delete(app)
+    await db.delete(activity)
     await db.commit()
     return True
 
 
 # ============================================================================
-# AppOperation CRUD
+# ActivityOperation CRUD
 # ============================================================================
 
 
-async def create_app_operation(
+async def create_activity_operation(
     db: AsyncSession,
-    app_id: int,
+    activity_id: int,
     name: str,
     display_name: str,
     code_symbol: str,
     config_schema: str = "{}",
     description: Optional[str] = None,
-) -> AppOperation:
-    """Create a new app operation."""
-    operation = AppOperation(
-        app_id=app_id,
+) -> ActivityOperation:
+    """Create a new activity operation."""
+    operation = ActivityOperation(
+        activity_id=activity_id,
         name=name,
         display_name=display_name,
         code_symbol=code_symbol,
@@ -167,22 +211,57 @@ async def create_app_operation(
     return operation
 
 
-async def get_app_operation(
+async def get_activity_operation(
     db: AsyncSession, operation_id: int
-) -> Optional[AppOperation]:
-    """Get an app operation by ID."""
+) -> Optional[ActivityOperation]:
+    """Get an activity operation by ID."""
     result = await db.execute(
-        select(AppOperation).where(AppOperation.id == operation_id)
+        select(ActivityOperation).where(ActivityOperation.id == operation_id)
     )
     return result.scalars().first()
 
 
-async def list_app_operations(db: AsyncSession, app_id: int) -> List[AppOperation]:
-    """List all operations for an app."""
+async def list_activity_operations(db: AsyncSession, activity_id: int) -> List[ActivityOperation]:
+    """List all operations for an activity."""
     result = await db.execute(
-        select(AppOperation).where(AppOperation.app_id == app_id)
+        select(ActivityOperation).where(ActivityOperation.activity_id == activity_id)
     )
     return list(result.scalars().all())
+
+
+async def get_activity_usage(db: AsyncSession, activity_id: int) -> list:
+    """Get workflows using operations from this activity."""
+    # Find all operation IDs belonging to this activity
+    ops_result = await db.execute(
+        select(ActivityOperation.id).where(ActivityOperation.activity_id == activity_id)
+    )
+    op_ids = [row[0] for row in ops_result.all()]
+
+    if not op_ids:
+        return []
+
+    # Find graphs containing nodes that reference these operations
+    from sqlalchemy import distinct
+    nodes_result = await db.execute(
+        select(distinct(Node.graph_id)).where(
+            Node.activity_operation_id.in_(op_ids)
+        )
+    )
+    graph_ids = [row[0] for row in nodes_result.all()]
+
+    if not graph_ids:
+        return []
+
+    # Find workflows that own these graphs
+    workflows_result = await db.execute(
+        select(Workflow).where(Workflow.graph_id.in_(graph_ids))
+    )
+    workflows = list(workflows_result.scalars().all())
+
+    return [
+        {"id": w.id, "name": w.name, "slug": w.slug, "description": w.description}
+        for w in workflows
+    ]
 
 
 # ============================================================================
@@ -343,7 +422,7 @@ async def create_node(
     config: str = "{}",
     config_schema: str = "{}",
     ui_position: str = '{"x": 0, "y": 0}',
-    app_operation_id: Optional[int] = None,
+    activity_operation_id: Optional[int] = None,
     primitive_type: Optional[str] = None,
 ) -> Node:
     """Create a new node."""
@@ -354,7 +433,7 @@ async def create_node(
         config=config,
         config_schema=config_schema,
         ui_position=ui_position,
-        app_operation_id=app_operation_id,
+        activity_operation_id=activity_operation_id,
         primitive_type=primitive_type,
     )
     db.add(node)
@@ -594,7 +673,7 @@ async def update_run(
             from datetime import datetime
 
             run.started_at = datetime.utcnow()
-        elif status in ("succeeded", "failed") and not run.ended_at:
+        elif status in ("succeeded", "failed", "cancelled") and not run.ended_at:
             from datetime import datetime
 
             run.ended_at = datetime.utcnow()
@@ -686,3 +765,62 @@ async def update_agent_session(
     await db.commit()
     await db.refresh(session)
     return session
+
+
+async def delete_agent_session(db: AsyncSession, session_id: int) -> bool:
+    """Delete an agent session and its messages."""
+    session = await get_agent_session(db, session_id)
+    if not session:
+        return False
+    await db.delete(session)
+    await db.commit()
+    return True
+
+
+async def get_agent_session_with_messages(
+    db: AsyncSession, session_id: int
+) -> Optional[AgentSession]:
+    """Get an agent session with its messages loaded."""
+    result = await db.execute(
+        select(AgentSession)
+        .where(AgentSession.id == session_id)
+        .options(selectinload(AgentSession.messages))
+    )
+    return result.scalars().first()
+
+
+# ============================================================================
+# AgentMessage CRUD
+# ============================================================================
+
+
+async def create_agent_message(
+    db: AsyncSession,
+    session_id: int,
+    role: str,
+    content: str,
+    action: Optional[str] = None,
+) -> AgentMessage:
+    """Create a new agent message."""
+    message = AgentMessage(
+        session_id=session_id,
+        role=role,
+        content=content,
+        action=action,
+    )
+    db.add(message)
+    await db.commit()
+    await db.refresh(message)
+    return message
+
+
+async def list_agent_messages(
+    db: AsyncSession, session_id: int
+) -> List[AgentMessage]:
+    """List all messages for a session."""
+    result = await db.execute(
+        select(AgentMessage)
+        .where(AgentMessage.session_id == session_id)
+        .order_by(AgentMessage.created_at)
+    )
+    return list(result.scalars().all())
