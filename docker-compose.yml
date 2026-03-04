@@ -25,15 +25,6 @@ services:
       - TZ_DEFAULT=${TZ_DEFAULT:-UTC}
       # API key authentication (auto-generated if not set)
       - TAPCRAFT_API_KEY=${TAPCRAFT_API_KEY:-}
-      # BYOK Configuration (takes precedence)
-      - COPILOT_PROVIDER=${COPILOT_PROVIDER:-anthropic}
-      - COPILOT_API_KEY=${COPILOT_API_KEY:-}
-      - COPILOT_MODEL=${COPILOT_MODEL:-}
-      # Fallback to internal keys
-      - INTERNAL_ANTHROPIC_LARGE_API_KEY=${INTERNAL_ANTHROPIC_LARGE_API_KEY:-}
-      - INTERNAL_ANTHROPIC_LARGE_MODEL=${INTERNAL_ANTHROPIC_LARGE_MODEL:-claude-sonnet-4-20250514}
-      - INTERNAL_ANTHROPIC_LARGE_URL=${INTERNAL_ANTHROPIC_LARGE_URL:-}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       # Secrets encryption key
       - TAPCRAFT_SECRET_KEY=${TAPCRAFT_SECRET_KEY:-}
       # Workflow environment config
@@ -69,15 +60,6 @@ services:
       - PYTHONUNBUFFERED=1
       - TEMPORAL_ADDRESS=temporal:7233
       - DATABASE_URL=sqlite+aiosqlite:///./data/tapcraft.db
-      # BYOK Configuration (takes precedence)
-      - COPILOT_PROVIDER=${COPILOT_PROVIDER:-anthropic}
-      - COPILOT_API_KEY=${COPILOT_API_KEY:-}
-      - COPILOT_MODEL=${COPILOT_MODEL:-}
-      # Fallback to internal keys
-      - INTERNAL_ANTHROPIC_LARGE_API_KEY=${INTERNAL_ANTHROPIC_LARGE_API_KEY:-}
-      - INTERNAL_ANTHROPIC_LARGE_MODEL=${INTERNAL_ANTHROPIC_LARGE_MODEL:-claude-sonnet-4-20250514}
-      - INTERNAL_ANTHROPIC_LARGE_URL=${INTERNAL_ANTHROPIC_LARGE_URL:-}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       # Secrets encryption key
       - TAPCRAFT_SECRET_KEY=${TAPCRAFT_SECRET_KEY:-}
       # Workflow environment config

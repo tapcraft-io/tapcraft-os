@@ -11,7 +11,6 @@ schedule runs, and monitor execution — all from a clean web UI.
 - **Git-backed workspaces** – workflow code is stored in versioned workspaces and synced from git repos
 - **Schedules** – trigger workflows on a cron schedule with timezone support
 - **Secrets management** – store encrypted credentials used by activities at runtime
-- **AI-assisted code generation** – bring your own LLM key (Anthropic or OpenAI) to generate workflow code from a prompt
 
 ## Getting Started
 
@@ -78,9 +77,6 @@ ui/            # React frontend (Vite + Tailwind)
 | `TAPCRAFT_API_KEY` | *(auto-generated)* | API key for the web UI; auto-generated on first startup if left blank |
 | `TAPCRAFT_SECRET_KEY` | | Encryption key for stored secrets |
 | `GIT_REMOTE_URL` | | Optional git remote to sync generated workflow code |
-| `COPILOT_PROVIDER` | `anthropic` | LLM provider for AI code generation (`anthropic` or `openai`) |
-| `COPILOT_API_KEY` | | Your API key for the chosen provider |
-| `COPILOT_MODEL` | | Model override (defaults to a sensible default per provider) |
 
 See `.env.example` for a full reference.
 
