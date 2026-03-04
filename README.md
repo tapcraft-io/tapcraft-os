@@ -8,7 +8,8 @@ schedule runs, and monitor execution — all from a clean web UI.
 
 - **Visual workflow editor** – build directed acyclic graphs of activities and connect them with edges
 - **Durable execution** – all workflows run on Temporal, giving you retries, timeouts, and history out of the box
-- **Git-backed workspaces** – workflow code is stored in versioned workspaces and synced from git repos
+- **Agent-driven via MCP** – connect Claude Code or any MCP-compatible coding agent to deploy and run workflows without touching the UI
+- **Git-backed workspaces** – point a workspace at a git repo; Tapcraft clones it and auto-discovers your activities and workflows
 - **Schedules** – trigger workflows on a cron schedule with timezone support
 - **Secrets management** – store encrypted credentials used by activities at runtime
 
@@ -50,6 +51,57 @@ npm run dev
 ```
 
 Open http://localhost:5173. The dev server proxies API calls to `http://localhost:8001`.
+
+## How It Works
+
+Tapcraft is designed to be driven by a coding agent (Claude Code, GitHub Copilot, etc.) via the
+[Model Context Protocol](https://modelcontextprotocol.io). The typical flow is:
+
+1. **Point your agent at the MCP server** — the server exposes tools for deploying workflows,
+   running them, managing secrets and schedules, and syncing code from a git repo.
+2. **Write workflow code in your own git repo** — activities go in `activities/`, workflows in
+   `workflows/`. Tapcraft clones the repo into its workspace and discovers them automatically.
+3. **Trigger runs from the UI or via the agent** — Tapcraft executes everything on Temporal,
+   giving you durable retries, timeouts, and full execution history.
+
+### Connecting Claude Code
+
+Run the MCP server locally (with the same environment the Docker stack uses):
+
+```bash
+poetry run tapcraft-mcp
+```
+
+Then add it to your Claude Code MCP config (`~/.claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "tapcraft": {
+      "command": "python",
+      "args": ["-m", "src.mcp.server"],
+      "cwd": "/path/to/tapcraft-os",
+      "env": {
+        "DATABASE_URL": "sqlite+aiosqlite:///./data/tapcraft.db",
+        "TEMPORAL_ADDRESS": "localhost:7233"
+      }
+    }
+  }
+}
+```
+
+The MCP server exposes tools for listing/deploying/running workflows, managing activities,
+secrets, and schedules, as well as resources at `tapcraft://docs/*` that describe how to
+write Temporal workflows and activities for Tapcraft.
+
+### Git repo sync
+
+Each workspace can be connected to a git repo containing your workflow code. Configure the
+workspace's `repo_url` and `repo_branch` via the UI or the `tapcraft_sync_repo` MCP tool.
+If the repo requires authentication, store a personal access token as a Tapcraft secret and
+reference it in `repo_auth_secret`. Tapcraft will shallow-clone (or pull) the repo and
+auto-discover `@activity.defn` functions and `@workflow.defn` classes from the
+`activities/` and `workflows/` directories.
 
 ## Project Layout
 
