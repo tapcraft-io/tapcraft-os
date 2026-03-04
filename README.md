@@ -1,43 +1,48 @@
 # Tapcraft OS
 
-Tapcraft OS is a single-tenant automation platform that turns natural language prompts into
-durable Temporal workflows. Automations are versioned in Git, leverage MCP-discovered tools,
-and execute via a dedicated worker process.
+Tapcraft OS is a self-hosted workflow automation platform built on [Temporal](https://temporal.io).
+Define reusable activities, compose them into durable workflows with a visual graph editor,
+schedule runs, and monitor execution — all from a clean web UI.
+
+## Features
+
+- **Visual workflow editor** – build directed acyclic graphs of activities and connect them with edges
+- **Durable execution** – all workflows run on Temporal, giving you retries, timeouts, and history out of the box
+- **Git-backed workspaces** – workflow code is stored in versioned workspaces and synced from git repos
+- **Schedules** – trigger workflows on a cron schedule with timezone support
+- **Secrets management** – store encrypted credentials used by activities at runtime
+- **AI-assisted code generation** – bring your own LLM key (Anthropic or OpenAI) to generate workflow code from a prompt
 
 ## Getting Started
 
 ### Prerequisites
-- Docker and Docker Compose
-- Python 3.11+
 
-### Install dependencies
-
-```bash
-poetry install
-```
-
-### Environment
-
-Copy `.env.example` to `.env` and adjust values as needed. The default configuration expects Temporal to be
-available at `localhost:7233` and uses the `default` task queue.
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
+- [Node.js](https://nodejs.org/) 18+ (for the UI dev server)
 
 ### Running the stack
 
-The project ships with a docker-compose configuration that starts Temporal, the API service,
-and the worker:
+Copy the example environment file and adjust values as needed:
+
+```bash
+cp .env.example .env
+```
+
+Start Temporal, the API service, and the worker:
 
 ```bash
 docker compose up --build
 ```
 
-Temporal Web will be available at http://localhost:8080 and the FastAPI application at
-http://localhost:8000.
+| Service | URL |
+|---|---|
+| API | http://localhost:8001 |
+| Temporal UI | http://localhost:8082 |
 
-### Rebel Control Center UI
+### UI
 
-The `ui/` workspace hosts the Star-Wars-meets-macOS Control Center. It is a Vite + React +
-Tailwind application that targets the FastAPI backend. Install dependencies and start the
-development server with:
+The `ui/` directory is a Vite + React + Tailwind application. Install dependencies and start
+the development server:
 
 ```bash
 cd ui
@@ -45,52 +50,41 @@ npm install
 npm run dev
 ```
 
-The dev server proxies API calls to `http://localhost:8000`. Open http://localhost:5173 to explore
-the Command Deck, Patch Bay, Agent Console, Chrono-Scope, and Config panels.
+Open http://localhost:5173. The dev server proxies API calls to `http://localhost:8001`.
 
 ## Project Layout
 
 ```
 src/
-  api/         # FastAPI application
-  services/    # Integration and domain services
-  models/      # Shared pydantic models
-  generated/   # Agent-authored workflow modules
-  agent/       # Prompt templates surfaced to the agent
+  api/         # FastAPI application and route handlers
+  activities/  # Built-in Temporal activity definitions
+  config/      # Runtime configuration helpers
+  db/          # SQLAlchemy models and database setup
+  mcp/         # MCP server integration
+  models/      # Shared Pydantic models
+  services/    # Business logic and CRUD layer
   worker/      # Temporal worker entrypoint
+  workflows/   # Built-in Temporal workflow definitions
+ui/            # React frontend (Vite + Tailwind)
 ```
 
-## LLM Agent Layer
+## Environment Variables
 
-The API now exposes a multi-step LLM flow that covers planning, code generation, validation,
-repair, testing, and decision memory:
+| Variable | Default | Description |
+|---|---|---|
+| `TEMPORAL_ADDRESS` | `localhost:7233` | Temporal server address |
+| `TASK_QUEUE` | `default` | Temporal task queue name |
+| `TZ_DEFAULT` | `UTC` | Default timezone for schedules |
+| `TAPCRAFT_API_KEY` | *(auto-generated)* | API key for the web UI; auto-generated on first startup if left blank |
+| `TAPCRAFT_SECRET_KEY` | | Encryption key for stored secrets |
+| `GIT_REMOTE_URL` | | Optional git remote to sync generated workflow code |
+| `COPILOT_PROVIDER` | `anthropic` | LLM provider for AI code generation (`anthropic` or `openai`) |
+| `COPILOT_API_KEY` | | Your API key for the chosen provider |
+| `COPILOT_MODEL` | | Model override (defaults to a sensible default per provider) |
 
-- `POST /agent/plan` – produce a `PlanDoc` outlining steps, risks, and artifacts.
-- `POST /agent/generate` – turn a prompt + plan into a Temporal workflow module and manifest.
-- `POST /agent/validate` – run deterministic guardrails and receive diagnostics.
-- `POST /agent/repair` – apply lightweight auto-fixes based on validation issues or runtime logs.
-- `POST /agent/tests` – request pytest scaffolding for the generated module.
-- `GET/POST /agent/memory/{workflow_ref}` – persist decision history and summaries per workflow.
-- `GET /agent/templates` – inspect task-specific plan templates stored under `src/agent/templates/`.
-- `GET/PUT /agent/models` & `GET/PUT /agent/limits` – control model selection, token budgets, and rate
-  limits for each agent stage.
+See `.env.example` for a full reference.
 
-Capabilities are cached server-side. Use `POST /config/capabilities/refresh` to rebuild the list
-and `GET /config/capabilities/schema/{tool_id}` to inspect JSON Schemas used for prompting.
-
-### Agent Environment Variables
-
-The `.env.example` file documents additional knobs for the agent layer, including default model
-choices, token budgets, rate limits, and plan cache TTL. Copy values into `.env` to customize them
-per environment.
-
-## Development Tasks
-
-The MVP roadmap is organized into sprints. Begin with the core loop:
-1. Implement shared models in `src/models/core.py`.
-2. Build the Temporal service client in `src/services/temporal_service.py`.
-3. Stand up the worker skeleton in `src/worker/worker.py`.
-4. Expose initial API routes from `src/api/server.py`.
+## Development
 
 Run formatting and type checks with:
 
@@ -101,4 +95,4 @@ poetry run mypy src
 
 ## License
 
-MIT
+[MIT](LICENSE)

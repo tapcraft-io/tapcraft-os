@@ -2,7 +2,7 @@
 name = "tapcraft-os"
 version = "0.1.0"
 description = "Automation platform built on Temporal, MCP, and Git"
-authors = ["Your Name <you@example.com>"]
+authors = ["tapcraft-io"]
 readme = "README.md"
 packages = [{include = "src"}]
 
