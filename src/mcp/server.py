@@ -22,14 +22,13 @@ Add to Claude Code MCP config (~/.claude/claude_desktop_config.json):
 
 from __future__ import annotations
 
-import asyncio
 import importlib
 import json
 import logging
 import os
 import sys
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 

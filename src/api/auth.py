@@ -9,7 +9,7 @@ import os
 import secrets
 from pathlib import Path
 
-from fastapi import Depends, HTTPException, Request, Security
+from fastapi import HTTPException, Request, Security
 from fastapi.security import APIKeyHeader, APIKeyQuery
 
 LOGGER = logging.getLogger(__name__)

@@ -177,7 +177,7 @@ class {workflow_name}:
             try:
                 config_dict = json.loads(config) if isinstance(config, str) else config
                 config_str = json.dumps(config_dict)
-            except:
+            except (json.JSONDecodeError, TypeError):
                 config_str = "{}"
 
             step_code = f'''# Step {step_idx + 1}: {label}
@@ -210,7 +210,7 @@ results["step_{step_idx}"] = step_{step_idx}_result
                 try:
                     config_dict = json.loads(config) if isinstance(config, str) else config
                     seconds = config_dict.get("seconds", 60)
-                except:
+                except (json.JSONDecodeError, TypeError):
                     seconds = 60
 
                 step_code = f'''# Step {step_idx + 1}: {label} (Delay)
@@ -237,7 +237,7 @@ workflow.logger.info(f"Completed browse step: {label}")
                     config_dict = json.loads(config) if isinstance(config, str) else config
                     message = config_dict.get("message", "Log step executed")
                     level = config_dict.get("level", "info")
-                except:
+                except (json.JSONDecodeError, TypeError):
                     message = "Log step executed"
                     level = "info"
 

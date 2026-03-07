@@ -2,7 +2,6 @@
 
 from datetime import datetime
 from typing import Optional
-import json
 
 from sqlalchemy import (
     Boolean,
@@ -53,9 +52,6 @@ class Workspace(Base):
     )
     runs: Mapped[list["Run"]] = relationship(
         "Run", back_populates="workspace", cascade="all, delete-orphan"
-    )
-    agent_sessions: Mapped[list["AgentSession"]] = relationship(
-        "AgentSession", back_populates="workspace", cascade="all, delete-orphan"
     )
 
 
@@ -278,42 +274,6 @@ class Run(Base):
     workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="runs")
 
 
-class AgentSession(Base):
-    """Interaction with the agent to create/modify Activities or Workflows."""
-
-    __tablename__ = "agent_sessions"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
-    target_type: Mapped[str] = mapped_column(
-        Enum("activity", "workflow", name="agent_target_type"), nullable=False
-    )
-    target_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    mode: Mapped[str] = mapped_column(
-        Enum("create", "modify", "debug", name="agent_mode"), nullable=False
-    )
-    user_prompt: Mapped[str] = mapped_column(Text, nullable=False)
-    plan: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    graph_diff: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    code_diff_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    status: Mapped[str] = mapped_column(
-        Enum("draft", "applied", "rejected", name="agent_session_status"),
-        nullable=False,
-        default="draft",
-    )
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now()
-    )
-
-    # Relationships
-    workspace: Mapped["Workspace"] = relationship("Workspace", back_populates="agent_sessions")
-    messages: Mapped[list["AgentMessage"]] = relationship(
-        "AgentMessage", back_populates="session", cascade="all, delete-orphan",
-        order_by="AgentMessage.created_at",
-    )
-
-
 class Secret(Base):
     """Encrypted secret for use by activities at runtime."""
 
@@ -324,21 +284,3 @@ class Secret(Base):
     encrypted_value: Mapped[str] = mapped_column(Text, nullable=False)
     category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-
-
-class AgentMessage(Base):
-    """Individual message in an agent chat session."""
-
-    __tablename__ = "agent_messages"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    session_id: Mapped[int] = mapped_column(ForeignKey("agent_sessions.id"), nullable=False)
-    role: Mapped[str] = mapped_column(
-        Enum("user", "assistant", "system", name="agent_message_role"), nullable=False
-    )
-    content: Mapped[str] = mapped_column(Text, nullable=False)
-    action: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON-encoded action
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-
-    # Relationships
-    session: Mapped["AgentSession"] = relationship("AgentSession", back_populates="messages")

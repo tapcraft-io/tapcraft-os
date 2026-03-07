@@ -50,7 +50,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173. The dev server proxies API calls to `http://localhost:8001`.
+Open http://localhost:5180. The dev server proxies API calls to `http://localhost:8001`.
 
 ## How It Works
 

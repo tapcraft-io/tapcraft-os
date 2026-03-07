@@ -72,5 +72,5 @@ cd ui && npm run dev
 ```
 
 - API: http://localhost:8001
-- UI: http://localhost:5173
+- UI: http://localhost:5180
 - Temporal UI: http://localhost:8082

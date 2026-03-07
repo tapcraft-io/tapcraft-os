@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 # ============================================================================
@@ -345,73 +345,6 @@ class RunResponse(BaseModel):
     temporal_run_id: Optional[str]
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-# ============================================================================
-# AgentSession Schemas
-# ============================================================================
-
-
-class AgentSessionCreate(BaseModel):
-    """Schema for creating an agent session."""
-
-    target_type: str  # "activity" or "workflow"
-    mode: str  # "create", "modify", "debug"
-    user_prompt: str
-    target_id: Optional[int] = None
-
-
-class AgentSessionUpdate(BaseModel):
-    """Schema for updating an agent session."""
-
-    plan: Optional[str] = None
-    graph_diff: Optional[str] = None
-    code_diff_summary: Optional[str] = None
-    status: Optional[str] = None
-    target_id: Optional[int] = None
-
-
-class AgentMessageResponse(BaseModel):
-    """Schema for agent message response."""
-
-    id: int
-    session_id: int
-    role: str
-    content: str
-    action: Optional[str]
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class AgentSessionResponse(BaseModel):
-    """Schema for agent session response."""
-
-    id: int
-    workspace_id: int
-    target_type: str
-    target_id: Optional[int]
-    mode: str
-    user_prompt: str
-    plan: Optional[str]
-    graph_diff: Optional[str]
-    code_diff_summary: Optional[str]
-    status: str
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class AgentSessionDetailResponse(AgentSessionResponse):
-    """Schema for agent session with messages."""
-
-    messages: List[AgentMessageResponse] = []
 
     class Config:
         from_attributes = True

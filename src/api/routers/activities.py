@@ -127,7 +127,6 @@ async def get_activity_code(
     if not activity:
         raise HTTPException(status_code=404, detail="Activity not found")
 
-    from pathlib import Path
 
     # code_module_path is like "workspace.workspace_1.activities.my_activity"
     parts = activity.code_module_path.split(".")
@@ -146,16 +145,16 @@ async def get_activity_code(
     # If no file on disk, show the registered operations as documentation
     if code is None and activity.operations:
         lines = [
-            f'"""',
+            '"""',
             f'Activity: {activity.name}',
             f'Module: {activity.code_module_path}',
-            f'',
+            '',
             f'{activity.description or "No description."}',
-            f'',
-            f'This activity is registered in the worker via ActivityRegistry.',
-            f'Operations are implemented as Temporal activity stubs.',
-            f'"""',
-            f'',
+            '',
+            'This activity is registered in the worker via ActivityRegistry.',
+            'Operations are implemented as Temporal activity stubs.',
+            '"""',
+            '',
         ]
         for op in activity.operations:
             lines.append(f'# Operation: {op.display_name}')
@@ -169,18 +168,18 @@ async def get_activity_code(
                     props = schema.get("properties", {})
                     required = schema.get("required", [])
                     if props:
-                        lines.append(f'# Config schema:')
+                        lines.append('# Config schema:')
                         for k, v in props.items():
                             req = " (required)" if k in required else ""
                             lines.append(f'#   {k}: {v.get("type", "any")}{req}')
                 except Exception:
                     pass
-            lines.append(f'')
+            lines.append('')
             lines.append(f'@activity.defn(name="{op.code_symbol}")')
             lines.append(f'async def {op.name}(config: Dict[str, Any]) -> Dict[str, Any]:')
             lines.append(f'    """{op.description or op.display_name}"""')
-            lines.append(f'    ...')
-            lines.append(f'')
+            lines.append('    ...')
+            lines.append('')
         code = "\n".join(lines)
 
     return {"code": code, "module_path": activity.code_module_path}

@@ -13,7 +13,7 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY pyproject.toml README.md ./
+COPY pyproject.toml poetry.lock README.md ./
 RUN poetry install --no-root --no-directory
 
 COPY src src

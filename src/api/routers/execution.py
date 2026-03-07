@@ -73,7 +73,7 @@ async def execute_workflow(
         if not module_path.startswith("workspace."):
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid module path: only workspace modules are allowed",
+                detail="Invalid module path: only workspace modules are allowed",
             )
 
         try:
@@ -88,7 +88,7 @@ async def execute_workflow(
         # Start workflow execution
         task_queue = os.getenv("TASK_QUEUE", "default")
 
-        handle = await client.start_workflow(
+        await client.start_workflow(
             workflow_class.run,
             request.input_config,
             id=temporal_workflow_id,

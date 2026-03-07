@@ -4,8 +4,6 @@ Registers built-in primitives and activity operations loaded from the database.
 """
 
 import importlib
-import sys
-from pathlib import Path
 from typing import Dict, List, Callable, Any
 from temporalio import activity
 
@@ -99,7 +97,7 @@ class ActivityRegistry:
                     # Import the module and function
                     module_path, func_name = code_symbol.rsplit(".", 1)
                     if not module_path.startswith("workspace."):
-                        return {"error": f"Invalid module path: only workspace modules are allowed"}
+                        return {"error": "Invalid module path: only workspace modules are allowed"}
                     module = importlib.import_module(module_path)
                     func = getattr(module, func_name)
 

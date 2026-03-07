@@ -27,9 +27,6 @@ services:
       - TAPCRAFT_API_KEY=${TAPCRAFT_API_KEY:-}
       # Secrets encryption key
       - TAPCRAFT_SECRET_KEY=${TAPCRAFT_SECRET_KEY:-}
-      # Workflow environment config
-      - TAPCRAFT_WF_GTM_API_BASE=${TAPCRAFT_WF_GTM_API_BASE:-}
-      - TAPCRAFT_WF_DEFAULT_USER_AGENT=${TAPCRAFT_WF_DEFAULT_USER_AGENT:-TapcraftBot/1.0}
     ports:
       - "8001:8000"
     volumes:
@@ -62,9 +59,6 @@ services:
       - DATABASE_URL=sqlite+aiosqlite:///./data/tapcraft.db
       # Secrets encryption key
       - TAPCRAFT_SECRET_KEY=${TAPCRAFT_SECRET_KEY:-}
-      # Workflow environment config
-      - TAPCRAFT_WF_GTM_API_BASE=${TAPCRAFT_WF_GTM_API_BASE:-}
-      - TAPCRAFT_WF_DEFAULT_USER_AGENT=${TAPCRAFT_WF_DEFAULT_USER_AGENT:-TapcraftBot/1.0}
     volumes:
       - ./src:/app/src
       - ./data:/app/data

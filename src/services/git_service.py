@@ -1,6 +1,5 @@
 """Git service for managing workflow and app code."""
 
-import os
 import subprocess
 from pathlib import Path
 from typing import Optional

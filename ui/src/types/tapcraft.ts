@@ -122,43 +122,7 @@ export interface Run {
   updated_at: string;
 }
 
-export interface AgentMessage {
-  id: number;
-  session_id: number;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  action: string | null;
-  created_at: string;
-}
-
-export interface AgentSession {
-  id: number;
-  workspace_id: number;
-  target_type: 'activity' | 'workflow';
-  target_id: number | null;
-  mode: 'create' | 'modify' | 'debug';
-  user_prompt: string;
-  plan: string | null;
-  graph_diff: string | null;
-  code_diff_summary: string | null;
-  status: 'draft' | 'applied' | 'rejected';
-  created_at: string;
-  updated_at: string;
-  messages?: AgentMessage[];
-}
-
 // API Request/Response types
-export interface CreateWorkflowRequest {
-  user_prompt: string;
-  available_activities?: number[] | null;
-}
-
-export interface CreateWorkflowResponse {
-  workflow: Workflow;
-  graph: Graph;
-  code_preview: string;
-  agent_session_id: number;
-}
 
 export interface ExecuteWorkflowRequest {
   workflow_id: number;

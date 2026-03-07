@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import xml.etree.ElementTree as ET
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List
 
 from temporalio import activity
 

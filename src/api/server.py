@@ -85,7 +85,7 @@ async def health() -> Dict[str, Any]:
 
     try:
         from temporalio.client import Client
-        client = await Client.connect(temporal_addr)
+        await Client.connect(temporal_addr)
         temporal_connected = True
     except Exception:
         pass
