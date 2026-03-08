@@ -184,7 +184,9 @@ async def get_run_status(
             await crud.update_run(db=db, run_id=run.id, status=status)
 
         base_response["status"] = status
-        base_response["temporal_status"] = WorkflowExecutionStatus.Name(wf_status)
+        base_response["temporal_status"] = (
+            WorkflowExecutionStatus.Name(wf_status) if wf_status is not None else None
+        )
 
         # Fetch activity execution history from Temporal
         activity_history = []
@@ -220,17 +222,17 @@ async def get_run_status(
                     }
 
                 elif et == EventType.EVENT_TYPE_ACTIVITY_TASK_STARTED:
-                    attrs = event.activity_task_started_event_attributes
-                    sched_id = attrs.scheduled_event_id
+                    started_attrs = event.activity_task_started_event_attributes
+                    sched_id = started_attrs.scheduled_event_id
                     if sched_id in activity_scheduled:
                         activity_scheduled[sched_id]["started_at"] = (
                             event.event_time.ToDatetime().isoformat() if event.event_time else None
                         )
-                        activity_scheduled[sched_id]["attempt"] = attrs.attempt
+                        activity_scheduled[sched_id]["attempt"] = started_attrs.attempt
 
                 elif et == EventType.EVENT_TYPE_ACTIVITY_TASK_COMPLETED:
-                    attrs = event.activity_task_completed_event_attributes
-                    sched_id = attrs.scheduled_event_id
+                    completed_attrs = event.activity_task_completed_event_attributes
+                    sched_id = completed_attrs.scheduled_event_id
                     if sched_id in activity_scheduled:
                         info = activity_scheduled[sched_id]
                         info["status"] = "completed"
@@ -241,46 +243,52 @@ async def get_run_status(
                         try:
                             import json as _json
 
-                            if attrs.result and attrs.result.payloads:
-                                output_data = _json.loads(attrs.result.payloads[0].data)
+                            if completed_attrs.result and completed_attrs.result.payloads:
+                                output_data = _json.loads(completed_attrs.result.payloads[0].data)
                         except Exception:
                             pass
                         info["output"] = output_data
                         activity_history.append(info)
 
                 elif et == EventType.EVENT_TYPE_ACTIVITY_TASK_FAILED:
-                    attrs = event.activity_task_failed_event_attributes
-                    sched_id = attrs.scheduled_event_id
+                    failed_attrs = event.activity_task_failed_event_attributes
+                    sched_id = failed_attrs.scheduled_event_id
                     if sched_id in activity_scheduled:
                         info = activity_scheduled[sched_id]
                         info["status"] = "failed"
                         info["ended_at"] = (
                             event.event_time.ToDatetime().isoformat() if event.event_time else None
                         )
-                        info["error"] = str(attrs.failure.message) if attrs.failure else None
+                        info["error"] = (
+                            str(failed_attrs.failure.message) if failed_attrs.failure else None
+                        )
                         info["error_type"] = (
-                            str(attrs.failure.failure_info)
-                            if attrs.failure and attrs.failure.failure_info
+                            str(failed_attrs.failure.failure_info)
+                            if failed_attrs.failure and failed_attrs.failure.failure_info
                             else None
                         )
-                        info["retry_state"] = str(attrs.retry_state) if attrs.retry_state else None
+                        info["retry_state"] = (
+                            str(failed_attrs.retry_state) if failed_attrs.retry_state else None
+                        )
                         info["stack_trace"] = (
-                            str(attrs.failure.stack_trace)
-                            if attrs.failure and attrs.failure.stack_trace
+                            str(failed_attrs.failure.stack_trace)
+                            if failed_attrs.failure and failed_attrs.failure.stack_trace
                             else None
                         )
                         activity_history.append(info)
 
                 elif et == EventType.EVENT_TYPE_ACTIVITY_TASK_TIMED_OUT:
-                    attrs = event.activity_task_timed_out_event_attributes
-                    sched_id = attrs.scheduled_event_id
+                    timeout_attrs = event.activity_task_timed_out_event_attributes
+                    sched_id = timeout_attrs.scheduled_event_id
                     if sched_id in activity_scheduled:
                         info = activity_scheduled[sched_id]
                         info["status"] = "timed_out"
                         info["ended_at"] = (
                             event.event_time.ToDatetime().isoformat() if event.event_time else None
                         )
-                        info["retry_state"] = str(attrs.retry_state) if attrs.retry_state else None
+                        info["retry_state"] = (
+                            str(timeout_attrs.retry_state) if timeout_attrs.retry_state else None
+                        )
                         activity_history.append(info)
 
             # Add still-running activities (scheduled but not completed/failed)
