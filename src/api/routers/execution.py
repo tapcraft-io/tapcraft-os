@@ -185,7 +185,9 @@ async def get_run_status(
 
         base_response["status"] = status
         base_response["temporal_status"] = (
-            WorkflowExecutionStatus.Name(int(wf_status)) if wf_status is not None else None
+            WorkflowExecutionStatus.Name(int(wf_status))  # type: ignore[arg-type]
+            if wf_status is not None
+            else None
         )
 
         # Fetch activity execution history from Temporal
