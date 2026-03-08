@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Docs — Tapcraft OS</title>
+  <meta name="description" content="Documentation for Tapcraft OS: self-hosted workflow automation on Temporal.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    :root {
+      --bg: #06070a;
+      --surface: #0c0e14;
+      --surface-2: #11131a;
+      --border: #1a1d27;
+      --border-light: #252833;
+      --accent: #e2953b;
+      --accent-dim: rgba(226, 149, 59, 0.15);
+      --accent-glow: rgba(226, 149, 59, 0.25);
+      --text: #eae8e4;
+      --text-secondary: #7c7f88;
+      --text-tertiary: #4a4d55;
+      --green: #34d399;
+      --red: #f87171;
+      --blue: #60a5fa;
+      --purple: #a78bfa;
+      --font-display: 'Syne', sans-serif;
+      --font-body: 'Manrope', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 14px 0;
+      background: rgba(6, 7, 10, 0.9);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    nav .inner {
+      max-width: 1400px; margin: 0 auto; padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      font-family: var(--font-display); font-weight: 800; font-size: 1.25rem;
+      color: var(--text); text-decoration: none;
+    }
+    .nav-logo span { color: var(--accent); }
+    .nav-right { display: flex; align-items: center; gap: 24px; }
+    .nav-right a {
+      font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary);
+      text-decoration: none; transition: color 0.2s;
+    }
+    .nav-right a:hover { color: var(--text); }
+    .nav-gh {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border: 1px solid var(--border-light); border-radius: 8px;
+      font-size: 0.8125rem; font-weight: 600; color: var(--text); text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .nav-gh:hover { border-color: var(--accent); background: var(--accent-dim); }
+    .nav-gh svg { width: 16px; height: 16px; fill: currentColor; }
+
+    /* ─── LAYOUT ─── */
+    .docs-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding-top: 60px;
+      min-height: 100vh;
+    }
+
+    /* ─── SIDEBAR ─── */
+    .sidebar {
+      position: sticky; top: 60px; height: calc(100vh - 60px);
+      overflow-y: auto; padding: 32px 24px 48px 24px;
+      border-right: 1px solid var(--border);
+      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+    }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-track { background: transparent; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .sidebar-section { margin-bottom: 28px; }
+    .sidebar-section-title {
+      font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 500;
+      color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 10px; padding-left: 12px;
+    }
+    .sidebar-section ul { list-style: none; }
+    .sidebar-section li a {
+      display: block; padding: 5px 12px; font-size: 0.8125rem; font-weight: 500;
+      color: var(--text-secondary); text-decoration: none; border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .sidebar-section li a:hover { color: var(--text); background: var(--surface); }
+    .sidebar-section li a.active {
+      color: var(--accent); background: var(--accent-dim);
+    }
+
+    /* Mobile sidebar toggle */
+    .sidebar-toggle {
+      display: none; position: fixed; bottom: 24px; right: 24px; z-index: 200;
+      width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--border-light);
+      background: var(--surface); color: var(--text); cursor: pointer;
+      align-items: center; justify-content: center;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+    .sidebar-toggle svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+    /* ─── CONTENT ─── */
+    .content {
+      padding: 48px 64px 120px 64px;
+      max-width: 820px;
+    }
+
+    /* ─── TYPOGRAPHY ─── */
+    .content h1 {
+      font-family: var(--font-display); font-size: 2.25rem; font-weight: 800;
+      letter-spacing: -0.02em; margin-bottom: 12px; line-height: 1.15;
+    }
+    .content h2 {
+      font-family: var(--font-display); font-size: 1.5rem; font-weight: 700;
+      letter-spacing: -0.01em; margin-top: 64px; margin-bottom: 16px;
+      padding-top: 24px; border-top: 1px solid var(--border);
+    }
+    .content h2:first-of-type { margin-top: 40px; border-top: none; padding-top: 0; }
+    .content h3 {
+      font-family: var(--font-display); font-size: 1.125rem; font-weight: 700;
+      margin-top: 40px; margin-bottom: 12px;
+    }
+    .content h4 {
+      font-family: var(--font-mono); font-size: 0.875rem; font-weight: 500;
+      color: var(--accent); margin-top: 32px; margin-bottom: 8px;
+      letter-spacing: 0.02em;
+    }
+    .content p {
+      font-size: 0.9375rem; color: var(--text-secondary); line-height: 1.75;
+      margin-bottom: 16px;
+    }
+    .content a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+    .content a:hover { border-bottom-color: var(--accent); }
+    .content strong { color: var(--text); font-weight: 600; }
+    .content ul, .content ol {
+      margin-bottom: 16px; padding-left: 20px;
+    }
+    .content li {
+      font-size: 0.9375rem; color: var(--text-secondary); line-height: 1.75;
+      margin-bottom: 6px;
+    }
+    .content li code, .content p code {
+      font-family: var(--font-mono); font-size: 0.8125rem; padding: 2px 7px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 5px; color: var(--accent);
+    }
+    .lead {
+      font-size: 1.0625rem; color: var(--text-secondary); line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    /* ─── CODE BLOCKS ─── */
+    .codeblock {
+      background: #0a0c10;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .codeblock-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .codeblock-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .codeblock-dot.r { background: #f87171; }
+    .codeblock-dot.y { background: #fbbf24; }
+    .codeblock-dot.g { background: #34d399; }
+    .codeblock-title {
+      margin-left: 8px; font-family: var(--font-mono);
+      font-size: 0.6875rem; color: var(--text-tertiary);
+    }
+    .codeblock pre {
+      padding: 16px 20px; overflow-x: auto;
+      font-family: var(--font-mono); font-size: 0.8125rem; line-height: 1.7;
+      color: var(--text-secondary); white-space: pre;
+    }
+    .codeblock .kw { color: var(--purple); }
+    .codeblock .fn { color: var(--blue); }
+    .codeblock .str { color: var(--accent); }
+    .codeblock .cm { color: var(--text-tertiary); font-style: italic; }
+    .codeblock .num { color: var(--green); }
+    .codeblock .dec { color: var(--green); }
+    .codeblock .op { color: var(--text-tertiary); }
+    .codeblock .type { color: var(--blue); }
+    .codeblock .prompt { color: var(--green); }
+    .codeblock .cmd { color: var(--text); }
+    .codeblock .flag { color: var(--blue); }
+
+    /* ─── TABLES ─── */
+    .docs-table {
+      width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.875rem;
+    }
+    .docs-table th {
+      text-align: left; padding: 10px 14px;
+      font-family: var(--font-mono); font-size: 0.75rem; font-weight: 500;
+      color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border-light); background: var(--surface);
+    }
+    .docs-table td {
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+      color: var(--text-secondary); vertical-align: top;
+    }
+    .docs-table td code {
+      font-family: var(--font-mono); font-size: 0.8125rem; padding: 1px 5px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 4px; color: var(--accent); white-space: nowrap;
+    }
+    .docs-table tr:last-child td { border-bottom: none; }
+
+    /* ─── CALLOUT ─── */
+    .callout {
+      padding: 16px 20px; margin-bottom: 20px;
+      border-left: 3px solid var(--accent);
+      background: var(--accent-dim);
+      border-radius: 0 8px 8px 0;
+      font-size: 0.875rem; color: var(--text-secondary);
+    }
+    .callout strong { color: var(--accent); }
+    .callout-info { border-left-color: var(--blue); background: rgba(96,165,250,0.08); }
+    .callout-info strong { color: var(--blue); }
+
+    /* ─── API ENDPOINT ─── */
+    .endpoint {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; margin-bottom: 8px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; font-family: var(--font-mono); font-size: 0.8125rem;
+    }
+    .method {
+      padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.6875rem;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .method-get { background: rgba(52,211,153,0.15); color: var(--green); }
+    .method-post { background: rgba(96,165,250,0.15); color: var(--blue); }
+    .method-patch { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .method-delete { background: rgba(248,113,113,0.15); color: var(--red); }
+    .endpoint .path { color: var(--text); }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 900px) {
+      .docs-layout { grid-template-columns: 1fr; }
+      .sidebar {
+        display: none; position: fixed; top: 60px; left: 0; right: 0;
+        height: calc(100vh - 60px); z-index: 50; background: var(--bg);
+        border-right: none; border-bottom: 1px solid var(--border);
+      }
+      .sidebar.open { display: block; }
+      .sidebar-toggle { display: flex; }
+      .content { padding: 32px 24px 80px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="inner">
+    <a href="index.html" class="nav-logo">tapcraft<span>.</span></a>
+    <div class="nav-right">
+      <a href="index.html">Home</a>
+      <a href="docs.html" style="color: var(--accent);">Docs</a>
+      <a href="https://github.com/tapcraft-io/tapcraft-os" class="nav-gh" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</nav>
+
+<button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')" aria-label="Toggle sidebar">
+  <svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+</button>
+
+<div class="docs-layout">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Getting Started</div>
+    <ul>
+      <li><a href="#installation">Installation</a></li>
+      <li><a href="#first-run">First Run</a></li>
+      <li><a href="#configuration">Configuration</a></li>
+    </ul>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Concepts</div>
+    <ul>
+      <li><a href="#workspaces">Workspaces</a></li>
+      <li><a href="#activities">Activities</a></li>
+      <li><a href="#workflows">Workflows</a></li>
+      <li><a href="#schedules">Schedules</a></li>
+      <li><a href="#secrets">Secrets</a></li>
+    </ul>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Guides</div>
+    <ul>
+      <li><a href="#writing-activities">Writing Activities</a></li>
+      <li><a href="#writing-workflows">Writing Workflows</a></li>
+      <li><a href="#git-sync">Git Repo Sync</a></li>
+    </ul>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">MCP Integration</div>
+    <ul>
+      <li><a href="#mcp-setup">Setup</a></li>
+      <li><a href="#mcp-tools">Tools Reference</a></li>
+      <li><a href="#mcp-resources">Resources</a></li>
+    </ul>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">API Reference</div>
+    <ul>
+      <li><a href="#api-auth">Authentication</a></li>
+      <li><a href="#api-workspaces">Workspaces</a></li>
+      <li><a href="#api-activities">Activities</a></li>
+      <li><a href="#api-workflows">Workflows</a></li>
+      <li><a href="#api-graphs">Graphs</a></li>
+      <li><a href="#api-execution">Execution</a></li>
+      <li><a href="#api-runs">Runs</a></li>
+      <li><a href="#api-schedules">Schedules</a></li>
+      <li><a href="#api-secrets">Secrets</a></li>
+    </ul>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Operations</div>
+    <ul>
+      <li><a href="#deployment">Deployment</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+    </ul>
+  </div>
+</aside>
+
+<!-- CONTENT -->
+<main class="content">
+
+<h1>Documentation</h1>
+<p class="lead">Everything you need to set up, extend, and operate Tapcraft OS.</p>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="installation">Installation</h2>
+
+<p>Tapcraft requires <strong>Docker</strong>, <strong>Docker Compose</strong>, and <strong>Node.js 18+</strong> (for the UI dev server).</p>
+
+<div class="codeblock">
+  <div class="codeblock-bar"><div class="codeblock-dot r"></div><div class="codeblock-dot y"></div><div class="codeblock-dot g"></div><span class="codeblock-title">terminal</span></div>
+  <pre><span class="prompt">$</span> <span class="cmd">git clone</span> <span class="str">https://github.com/tapcraft-io/tapcraft-os.git</span>
+<span class="prompt">$</span> <span class="cmd">cd</span> tapcraft-os
+<span class="prompt">$</span> <span class="cmd">cp</span> .env.example .env</pre>
+</div>
+
+<p>Edit <code>.env</code> if you need to set a specific API key or encryption key. Leaving them blank causes auto-generation on first startup.</p>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="first-run">First Run</h2>
+
+<p>Start all three backend services (Temporal, API, Worker) with Docker Compose:</p>
+
+<div class="codeblock">
+  <div class="codeblock-bar"><div class="codeblock-dot r"></div><div class="codeblock-dot y"></div><div class="codeblock-dot g"></div><span class="codeblock-title">terminal</span></div>
+  <pre><span class="prompt">$</span> <span class="cmd">docker compose up</span> <span class="flag">--build</span></pre>
+</div>
+
+<p>Then start the UI development server:</p>
+
+<div class="codeblock">
+  <div class="codeblock-bar"><div class="codeblock-dot r"></div><div class="codeblock-dot y"></div><div class="codeblock-dot g"></div><span class="codeblock-title">terminal</span></div>
+  <pre><span class="prompt">$</span> <span class="cmd">cd</span> ui && <span class="cmd">npm install</span> && <span class="cmd">npm run dev</span></pre>
+</div>
+
+<table class="docs-table">
+  <tr><th>Service</th><th>URL</th></tr>
+  <tr><td>API</td><td><code>http://localhost:8001</code></td></tr>
+  <tr><td>UI</td><td><code>http://localhost:5180</code></td></tr>
+  <tr><td>Temporal UI</td><td><code>http://localhost:8082</code></td></tr>
+</table>
+
+<p>On first startup the API auto-generates a <code>TAPCRAFT_API_KEY</code> and prints it to the console. Use this key to log in to the web UI.</p>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="configuration">Configuration</h2>
+
+<p>All configuration is via environment variables, loaded from <code>.env</code> by Docker Compose.</p>
+
+<table class="docs-table">
+  <tr><th>Variable</th><th>Default</th><th>Description</th></tr>
+  <tr><td><code>TEMPORAL_ADDRESS</code></td><td><code>localhost:7233</code></td><td>Temporal server gRPC address</td></tr>
+  <tr><td><code>TEMPORAL_NAMESPACE</code></td><td><code>default</code></td><td>Temporal namespace</td></tr>
+  <tr><td><code>TASK_QUEUE</code></td><td><code>default</code></td><td>Temporal task queue name</td></tr>
+  <tr><td><code>TZ_DEFAULT</code></td><td><code>UTC</code></td><td>Default timezone for schedules</td></tr>
+  <tr><td><code>DATABASE_URL</code></td><td>&mdash;</td><td>SQLAlchemy async URL, e.g. <code>sqlite+aiosqlite:///./data/tapcraft.db</code></td></tr>
+  <tr><td><code>TAPCRAFT_API_KEY</code></td><td><em>auto</em></td><td>API key for web UI and REST. Auto-generated if blank.</td></tr>
+  <tr><td><code>TAPCRAFT_SECRET_KEY</code></td><td><em>auto</em></td><td>Fernet key for secrets encryption. Auto-generated if blank.</td></tr>
+  <tr><td><code>GIT_REMOTE_URL</code></td><td>&mdash;</td><td>Optional git remote for syncing generated workflow code</td></tr>
+  <tr><td><code>TAPCRAFT_WORKSPACE_ID</code></td><td><code>1</code></td><td>Default workspace ID used by the MCP server</td></tr>
+  <tr><td><code>WORKER_RELOAD_CHECK_INTERVAL</code></td><td><code>5</code></td><td>Seconds between file-change checks for hot reload</td></tr>
+</table>
+
+<h4>Generating a secret key manually</h4>
+
+<div class="codeblock">
+  <div class="codeblock-bar"><div class="codeblock-dot r"></div><div class="codeblock-dot y"></div><div class="codeblock-dot g"></div><span class="codeblock-title">terminal</span></div>
+  <pre><span class="prompt">$</span> <span class="cmd">python</span> <span class="flag">-c</span> <span class="str">"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"</span></pre>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="workspaces">Workspaces</h2>
+
+<p>A <strong>workspace</strong> is the top-level container for all your activities, workflows, schedules, and runs. Each workspace maps to a directory under <code>/app/workspace/workspace_{id}/</code>.</p>
+
+<p>A workspace can optionally be connected to a <strong>git repository</strong>. When you sync, Tapcraft clones the repo into the workspace and auto-discovers any activities and workflows it finds.</p>
+
+<div class="codeblock">
+  <div class="codeblock-bar"><div class="codeblock-dot r"></div><div class="codeblock-dot y"></div><div class="codeblock-dot g"></div><span class="codeblock-title">workspace directory layout</span></div>
+  <pre>workspace/
+└── workspace_1/
+    ├── workflows/          <span class="cm"># Deployed or generated workflows</span>
+    ├── activities/         <span class="cm"># User-defined activities</span>
+    ├── apps/               <span class="cm"># App code</span>
+    └── repo/               <span class="cm"># Cloned git repository</span>
+        ├── workflows/
+        ├── activities/
+        └── ...</pre>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="activities">Activities</h2>
+
+<p>An <strong>activity</strong> is a reusable unit of work — an HTTP call, a database query, a file parse, or any I/O operation. Activities are the only place where side effects should happen; workflows orchestrate them but never perform I/O directly.</p>
+
+<p>Tapcraft ships with four built-in activities:</p>
+
+<table class="docs-table">
+  <tr><th>Name</th><th>Description</th></tr>
+  <tr><td><code>net.http.parallel</code></td><td>Execute multiple HTTP requests concurrently</td></tr>
+  <tr><td><code>feed.rss.read</code></td><td>Fetch and parse an RSS/Atom feed</td></tr>
+  <tr><td><code>data.parse_xml</code></td><td>Parse an XML string into a nested dict</td></tr>
+  <tr><td><code>data.dedup</code></td><td>Deduplicate a list of dicts by a key field</td></tr>
+</table>
+
+<p>You can also write your own — see <a href="#writing-activities">Writing Activities</a>.</p>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="workflows">Workflows</h2>
+
+<p>A <strong>workflow</strong> is a Temporal workflow class that orchestrates one or more activities into a durable pipeline. Workflows survive process restarts, have built-in retries, and maintain full execution history in Temporal.</p>
+
+<p>Workflows can be created in two ways:</p>
+<ul>
+  <li><strong>Visual editor</strong> — build a DAG in the UI; Tapcraft generates Python code from the graph</li>
+  <li><strong>Code-first</strong> — write Python directly and deploy via MCP or the git sync</li>
+</ul>
+
+<p>See <a href="#writing-workflows">Writing Workflows</a> for the full guide.</p>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="schedules">Schedules</h2>
+
+<p>A <strong>schedule</strong> binds a workflow to a cron expression. Tapcraft creates a native Temporal schedule under the hood, giving you timezone support, pause/resume, and execution history.</p>
+
+<p>Cron expressions use standard 5-field format: <code>minute hour day-of-month month day-of-week</code>.</p>
+
+<table class="docs-table">
+  <tr><th>Expression</th><th>Meaning</th></tr>
+  <tr><td><code>0 9 * * 1-5</code></td><td>9:00 AM every weekday</td></tr>
+  <tr><td><code>*/15 * * * *</code></td><td>Every 15 minutes</td></tr>
+  <tr><td><code>0 0 1 * *</code></td><td>Midnight on the 1st of every month</td></tr>
+  <tr><td><code>@daily</code></td><td>Once a day at midnight</td></tr>
+  <tr><td><code>@hourly</code></td><td>Once an hour at :00</td></tr>
+</table>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="secrets">Secrets</h2>
+
+<p><strong>Secrets</strong> store API keys, tokens, and credentials encrypted at rest using <a href="https://cryptography.io/en/latest/fernet/" target="_blank" rel="noopener">Fernet symmetric encryption</a>. The encryption key is set via <code>TAPCRAFT_SECRET_KEY</code>.</p>
+
+<p>Activities retrieve secrets at runtime:</p>
+
+<div class="codeblock">
+  <div class="codeblock-bar"><div class="codeblock-dot r"></div><div class="codeblock-dot y"></div><div class="codeblock-dot g"></div><span class="codeblock-title">my_activity.py</span></div>
+  <pre><span class="kw">from</span> src.services.secrets <span class="kw">import</span> get_secret
+
+<span class="dec">@activity.defn</span>(name=<span class="str">"my.activity"</span>)
+<span class="kw">async def</span> <span class="fn">my_activity</span>(config: <span class="type">dict</span>) -> <span class="type">dict</span>:
+    api_key = <span class="kw">await</span> <span class="fn">get_secret</span>(<span class="str">"OPENAI_API_KEY"</span>)
+    <span class="cm"># use api_key in HTTP calls...</span></pre>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="writing-activities">Writing Activities</h2>
+
+<p>An activity is an <code>async</code> function decorated with <code>@activity.defn</code>. It receives a single <code>dict</code> argument and returns a <code>dict</code>.</p>
+
+<div class="codeblock">
+  <div class="codeblock-bar"><div class="codeblock-dot r"></div><div class="codeblock-dot y"></div><div class="codeblock-dot g"></div><span class="codeblock-title">activities/my_activity.py</span></div>
+  <pre><span class="kw">from</span> temporalio <span class="kw">import</span> activity
+<span class="kw">from</span> typing <span class="kw">import</span> <span class="type">Any</span>, <span class="type">Dict</span>
+<span class="kw">import</span> httpx
+
+<span class="dec">@activity.defn</span>(name=<span class="str">"my_namespace.fetch_data"</span>)
+<span class="kw">async def</span> <span class="fn">fetch_data</span>(config: <span class="type">Dict</span>[<span class="type">str</span>, <span class="type">Any</span>]) -> <span class="type">Dict</span>[<span class="type">str</span>, <span class="type">Any</span>]:
+    <span class="str">"""Fetch data from an external API."""</span>
+    url = config.get(<span class="str">"url"</span>, <span class="str">"https://api.example.com/data"</span>)
+    timeout = config.get(<span class="str">"timeout"</span>, <span class="num">30</span>)
+
+    <span class="kw">async with</span> httpx.AsyncClient() <span class="kw">as</span> client:
+        resp = <span class="kw">await</span> client.get(url, timeout=timeout)
+        resp.raise_for_status()
+
+    <span class="kw">return</span> {<span class="str">"data"</span>: resp.json(), <span class="str">"status"</span>: resp.status_code}</pre>
+</div>
+
+<h3>Rules</h3>
+<ul>
+  <li>Activities <strong>may perform I/O</strong> — HTTP calls, file reads, database queries, etc.</li>
+  <li>Receive a single <code>dict</code> config and return a <code>dict</code> result.</li>
+  <li>Give each activity a unique <code>name</code> using dot-separated namespaces.</li>
+  <li>Activities can access encrypted secrets via <code>await get_secret("NAME")</code>.</li>
+</ul>
+
+<h3>Discovery</h3>
+<p>Place your file in one of these directories and the worker discovers it automatically:</p>
+<ul>
+  <li><code>workspace/workspace_{id}/activities/</code></li>
+  <li><code>workspace/workspace_{id}/repo/activities/</code></li>
+  <li><code>workspace/workspace_{id}/repo/{subdir}/activities/</code> (monorepo)</li>
+</ul>
+<p>The worker scans for new files every 5 seconds. No restart needed.</p>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="writing-workflows">Writing Workflows</h2>
+
+<p>A workflow is a class decorated with <code>@workflow.defn</code> containing a <code>@workflow.run</code> async method.</p>
+
+<div class="codeblock">
+  <div class="codeblock-bar"><div class="codeblock-dot r"></div><div class="codeblock-dot y"></div><div class="codeblock-dot g"></div><span class="codeblock-title">workflows/daily_report.py</span></div>
+  <pre><span class="kw">from</span> datetime <span class="kw">import</span> timedelta
+<span class="kw">from</span> temporalio <span class="kw">import</span> workflow
+<span class="kw">from</span> temporalio.common <span class="kw">import</span> RetryPolicy
+
+<span class="dec">@workflow.defn</span>
+<span class="kw">class</span> <span class="fn">DailyReportWorkflow</span>:
+    <span class="str">"""Fetch metrics and send a summary report."""</span>
+
+    <span class="dec">@workflow.run</span>
+    <span class="kw">async def</span> <span class="fn">run</span>(self, config: <span class="type">dict</span>) -> <span class="type">dict</span>:
+        <span class="cm"># Step 1: fetch metrics</span>
+        metrics = <span class="kw">await</span> workflow.execute_activity(
+            <span class="str">"metrics.pull"</span>,
+            {<span class="str">"days"</span>: config.get(<span class="str">"days"</span>, <span class="num">7</span>)},
+            start_to_close_timeout=timedelta(minutes=<span class="num">2</span>),
+            retry_policy=RetryPolicy(maximum_attempts=<span class="num">3</span>),
+        )
+
+        <span class="cm"># Step 2: wait before sending</span>
+        <span class="kw">await</span> workflow.sleep(<span class="num">5</span>)
+
+        <span class="cm"># Step 3: send report</span>
+        result = <span class="kw">await</span> workflow.execute_activity(
+            <span class="str">"notifications.send_report"</span>,
+            {<span class="str">"metrics"</span>: metrics, <span class="str">"channel"</span>: <span class="str">"#team"</span>},
+            start_to_close_timeout=timedelta(seconds=<span class="num">30</span>),
+        )
+
+        workflow.logger.info(<span class="str">"Report sent successfully"</span>)
+        <span class="kw">return</span> {<span class="str">"status"</span>: <span class="str">"done"</span>, <span class="str">"items"</span>: len(metrics)}</pre>
+</div>
+
+<h3>Key Rules</h3>
+
+<div class="callout">
+  <strong>Important:</strong> Workflow code must be deterministic. Never perform I/O, use <code>datetime.now()</code>, generate random numbers, or access the filesystem directly. All side effects must go through activities.
+</div>
+
+<ul>
+  <li>Use <code>workflow.execute_activity("name", config_dict, start_to_close_timeout=...)</code> to call activities.</li>
+  <li>Always set <code>start_to_close_timeout</code> — it is required.</li>
+  <li>Use <code>await workflow.sleep(seconds)</code> for delays (not <code>asyncio.sleep</code>).</li>
+  <li>Use <code>workflow.logger</code> for logging (not the <code>logging</code> module).</li>
+  <li>Accept <code>config: dict</code> and use <code>.get()</code> with defaults.</li>
+  <li>Return a <code>dict</code> summarizing the result.</li>
+</ul>
+
+<h3>Timeout Guidelines</h3>
+<table class="docs-table">
+  <tr><th>Activity type</th><th>Recommended timeout</th></tr>
+  <tr><td>Fast operations (parsing, formatting)</td><td><code>timedelta(seconds=30)</code></td></tr>
+  <tr><td>API calls</td><td><code>timedelta(minutes=2-5)</code></td></tr>
+  <tr><td>Long-running operations</td><td><code>timedelta(minutes=10+)</code></td></tr>
+</table>
+
+<h3>Discovery</h3>
+<p>Workflows are discovered from the same paths as activities, but in <code>workflows/</code> directories. The worker watches for new files every 5 seconds.</p>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="git-sync">Git Repo Sync</h2>
+
+<p>Each workspace can be linked to a git repository. When you sync, Tapcraft:</p>
+<ol>
+  <li>Shallow-clones (or fast-forward pulls) the repo into <code>workspace_{id}/repo/</code></li>
+  <li>Scans <code>repo/activities/</code> and <code>repo/workflows/</code> for decorated functions and classes</li>
+  <li>Registers discovered items so the worker can load them</li>
+</ol>
+
+<p>Configure the workspace via the UI or MCP:</p>
+<ul>
+  <li><code>repo_url</code> — the git clone URL</li>
+  <li><code>repo_branch</code> — branch to track (default: <code>main</code>)</li>
+  <li><code>repo_auth_secret</code> — name of a Tapcraft secret containing a personal access token (for private repos)</li>
+</ul>
+
+<h4>Expected repo structure</h4>
+<div class="codeblock">
+  <div class="codeblock-bar"><div class="codeblock-dot r"></div><div class="codeblock-dot y"></div><div class="codeblock-dot g"></div><span class="codeblock-title">your-repo/</span></div>
+  <pre>activities/
+  __init__.py
+  fetch_data.py         <span class="cm"># @activity.defn functions</span>
+  send_notification.py
+workflows/
+  __init__.py
+  daily_pipeline.py     <span class="cm"># @workflow.defn classes</span>
+  monitor.py</pre>
+</div>
+
+<div class="callout callout-info">
+  <strong>Monorepo support:</strong> Tapcraft also checks one level of subdirectories — so <code>my-app/activities/</code> and <code>my-app/workflows/</code> are also discovered.
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="mcp-setup">MCP Setup</h2>
+
+<p>The MCP server lets Claude Code (or any <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">MCP</a>-compatible agent) manage the full Tapcraft lifecycle without touching the UI.</p>
+
+<h3>Running the MCP server</h3>
+
+<div class="codeblock">
+  <div class="codeblock-bar"><div class="codeblock-dot r"></div><div class="codeblock-dot y"></div><div class="codeblock-dot g"></div><span class="codeblock-title">terminal</span></div>
+  <pre><span class="prompt">$</span> <span class="cmd">poetry run tapcraft-mcp</span></pre>
+</div>
+
+<h3>Connecting Claude Code</h3>
+
+<p>Add the server to your Claude Code MCP config:</p>
+
+<div class="codeblock">
+  <div class="codeblock-bar"><div class="codeblock-dot r"></div><div class="codeblock-dot y"></div><div class="codeblock-dot g"></div><span class="codeblock-title">~/.claude/claude_desktop_config.json</span></div>
+  <pre>{
+  <span class="str">"mcpServers"</span>: {
+    <span class="str">"tapcraft"</span>: {
+      <span class="str">"command"</span>: <span class="str">"python"</span>,
+      <span class="str">"args"</span>: [<span class="str">"-m"</span>, <span class="str">"src.mcp.server"</span>],
+      <span class="str">"cwd"</span>: <span class="str">"/path/to/tapcraft-os"</span>,
+      <span class="str">"env"</span>: {
+        <span class="str">"DATABASE_URL"</span>: <span class="str">"sqlite+aiosqlite:///./data/tapcraft.db"</span>,
+        <span class="str">"TEMPORAL_ADDRESS"</span>: <span class="str">"localhost:7233"</span>
+      }
+    }
+  }
+}</pre>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="mcp-tools">MCP Tools Reference</h2>
+
+<p>The MCP server exposes the following tools. All return JSON strings.</p>
+
+<h3>Workflow Management</h3>
+<table class="docs-table">
+  <tr><th>Tool</th><th>Parameters</th><th>Description</th></tr>
+  <tr><td><code>tapcraft_list_workflows</code></td><td>&mdash;</td><td>List all workflows with last run info</td></tr>
+  <tr><td><code>tapcraft_get_workflow</code></td><td><code>workflow_id: int</code></td><td>Get details including source code</td></tr>
+  <tr><td><code>tapcraft_deploy_workflow</code></td><td><code>slug, name, code, description?</code></td><td>Deploy Python workflow code to workspace</td></tr>
+</table>
+
+<h3>Run Management</h3>
+<table class="docs-table">
+  <tr><th>Tool</th><th>Parameters</th><th>Description</th></tr>
+  <tr><td><code>tapcraft_run_workflow</code></td><td><code>workflow_id: int, input_config?: dict</code></td><td>Execute a workflow</td></tr>
+  <tr><td><code>tapcraft_get_run</code></td><td><code>run_id: int</code></td><td>Get run status and activity history</td></tr>
+  <tr><td><code>tapcraft_list_runs</code></td><td><code>workflow_id?, status?, limit?</code></td><td>List recent runs with filters</td></tr>
+  <tr><td><code>tapcraft_retry_run</code></td><td><code>run_id: int, input_config?</code></td><td>Retry a failed/cancelled run</td></tr>
+  <tr><td><code>tapcraft_cancel_run</code></td><td><code>run_id: int</code></td><td>Cancel a running workflow</td></tr>
+</table>
+
+<h3>Activities, Secrets, Schedules, Sync</h3>
+<table class="docs-table">
+  <tr><th>Tool</th><th>Parameters</th><th>Description</th></tr>
+  <tr><td><code>tapcraft_list_activities</code></td><td>&mdash;</td><td>List all available activities</td></tr>
+  <tr><td><code>tapcraft_get_activity_schema</code></td><td><code>activity_name: str</code></td><td>Get input/output schema for an activity</td></tr>
+  <tr><td><code>tapcraft_manage_secret</code></td><td><code>action, name, value?, category?</code></td><td>Set, delete, or list secrets</td></tr>
+  <tr><td><code>tapcraft_list_schedules</code></td><td><code>workflow_id?: int</code></td><td>List cron schedules</td></tr>
+  <tr><td><code>tapcraft_create_schedule</code></td><td><code>workflow_id, name, cron, timezone?, enabled?</code></td><td>Create a cron schedule</td></tr>
+  <tr><td><code>tapcraft_sync_repo</code></td><td>&mdash;</td><td>Pull latest code and discover new items</td></tr>
+</table>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="mcp-resources">MCP Resources</h2>
+
+<p>The MCP server also exposes documentation resources that agents can read to learn how to write code for Tapcraft:</p>
+
+<table class="docs-table">
+  <tr><th>URI</th><th>Description</th></tr>
+  <tr><td><code>tapcraft://docs/writing-workflows</code></td><td>Full guide on writing Temporal workflows</td></tr>
+  <tr><td><code>tapcraft://docs/available-activities</code></td><td>Reference for all built-in activities with schemas</td></tr>
+  <tr><td><code>tapcraft://docs/examples</code></td><td>Example workflows from the examples directory</td></tr>
+</table>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="api-auth">API Authentication</h2>
+
+<p>All API endpoints (except <code>/health</code> and <code>/auth/validate</code>) require an API key. Pass it via header:</p>
+
+<div class="codeblock">
+  <div class="codeblock-bar"><div class="codeblock-dot r"></div><div class="codeblock-dot y"></div><div class="codeblock-dot g"></div><span class="codeblock-title">terminal</span></div>
+  <pre><span class="prompt">$</span> <span class="cmd">curl</span> <span class="flag">-H</span> <span class="str">"X-API-Key: your-key-here"</span> http://localhost:8001/workflows</pre>
+</div>
+
+<p>Or via query parameter: <code>?api_key=your-key-here</code></p>
+
+<div class="callout">
+  <strong>Public endpoints:</strong> <code>GET /health</code> returns Temporal connection status. <code>GET /auth/validate</code> checks if a stored API key is valid.
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="api-workspaces">Workspaces API</h2>
+
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/workspaces</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/workspaces</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/workspaces/{workspace_id}</span></div>
+<div class="endpoint"><span class="method method-patch">PATCH</span><span class="path">/workspaces/{workspace_id}</span></div>
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/workspaces/{workspace_id}/sync</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/workspaces/{workspace_id}/discovered</span></div>
+
+<p style="margin-top: 12px;"><code>POST /workspaces/{id}/sync</code> triggers a git pull and activity/workflow discovery. Returns sync status, errors, and lists of discovered items.</p>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="api-activities">Activities API</h2>
+
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/activities</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/activities</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/activities/{activity_id}</span></div>
+<div class="endpoint"><span class="method method-patch">PATCH</span><span class="path">/activities/{activity_id}</span></div>
+<div class="endpoint"><span class="method method-delete">DELETE</span><span class="path">/activities/{activity_id}</span></div>
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/activities/{activity_id}/operations</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/activities/{activity_id}/operations</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/activities/{activity_id}/code</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/activities/{activity_id}/usage</span></div>
+
+<p style="margin-top: 12px;"><code>GET /activities/{id}/code</code> returns the Python source code. <code>GET /activities/{id}/usage</code> returns workflows that reference this activity's operations.</p>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="api-workflows">Workflows API</h2>
+
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/workflows</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/workflows</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/workflows/{workflow_id}</span></div>
+<div class="endpoint"><span class="method method-patch">PATCH</span><span class="path">/workflows/{workflow_id}</span></div>
+<div class="endpoint"><span class="method method-delete">DELETE</span><span class="path">/workflows/{workflow_id}</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/workflows/{workflow_id}/code</span></div>
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/workflows/{workflow_id}/regenerate</span></div>
+
+<p style="margin-top: 12px;"><code>POST /workflows/{id}/regenerate</code> re-generates the Python code from the workflow's graph definition.</p>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="api-graphs">Graphs API</h2>
+
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/graphs/{graph_id}</span></div>
+<div class="endpoint"><span class="method method-patch">PATCH</span><span class="path">/graphs/{graph_id}</span></div>
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/graphs/{graph_id}/nodes</span></div>
+<div class="endpoint"><span class="method method-patch">PATCH</span><span class="path">/graphs/nodes/{node_id}</span></div>
+<div class="endpoint"><span class="method method-delete">DELETE</span><span class="path">/graphs/nodes/{node_id}</span></div>
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/graphs/{graph_id}/edges</span></div>
+<div class="endpoint"><span class="method method-delete">DELETE</span><span class="path">/graphs/edges/{edge_id}</span></div>
+
+<p style="margin-top: 12px;">Graphs represent the visual DAG of a workflow. Node kinds: <code>trigger</code>, <code>activity_operation</code>, <code>primitive</code>, <code>logic</code>. Primitive types: <code>http_request</code>, <code>delay</code>, <code>log</code>, <code>browse</code>.</p>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="api-execution">Execution API</h2>
+
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/execution/workflows/{workflow_id}/execute</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/execution/runs/{run_id}/status</span></div>
+
+<p style="margin-top: 12px;">The execute endpoint starts a Temporal workflow and returns a <code>run_id</code> and <code>temporal_workflow_id</code>. The status endpoint returns detailed info including <code>temporal_status</code> and per-activity history with timing.</p>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="api-runs">Runs API</h2>
+
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/runs</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/runs</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/runs/{run_id}</span></div>
+<div class="endpoint"><span class="method method-patch">PATCH</span><span class="path">/runs/{run_id}</span></div>
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/runs/{run_id}/retry</span></div>
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/runs/{run_id}/cancel</span></div>
+
+<p style="margin-top: 12px;">Run statuses: <code>queued</code> → <code>running</code> → <code>succeeded</code> | <code>failed</code> | <code>cancelled</code>. Retry creates a new run with the same (or overridden) input config.</p>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="api-schedules">Schedules API</h2>
+
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/schedules</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/schedules</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/schedules/{schedule_id}</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/schedules/{schedule_id}/temporal-info</span></div>
+<div class="endpoint"><span class="method method-patch">PATCH</span><span class="path">/schedules/{schedule_id}</span></div>
+<div class="endpoint"><span class="method method-delete">DELETE</span><span class="path">/schedules/{schedule_id}</span></div>
+
+<p style="margin-top: 12px;"><code>GET /schedules/{id}/temporal-info</code> returns Temporal-side data: pause state, action count, recent actions, and next scheduled times.</p>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="api-secrets">Secrets API</h2>
+
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/secrets</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/secrets</span></div>
+<div class="endpoint"><span class="method method-delete">DELETE</span><span class="path">/secrets/{name}</span></div>
+
+<p style="margin-top: 12px;"><code>POST /secrets</code> accepts <code>{name, value, category?}</code>. The value is encrypted before storage. <code>GET /secrets</code> returns metadata only — values are never exposed via the API.</p>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="deployment">Deployment</h2>
+
+<h3>Docker Compose (default)</h3>
+<p>The included <code>docker-compose.yml</code> runs three services with resource limits (1 GB memory, 1 CPU each):</p>
+<ul>
+  <li><strong>temporal</strong> — Temporal dev server with in-memory storage</li>
+  <li><strong>api</strong> — FastAPI with uvicorn, hot-reload enabled</li>
+  <li><strong>worker</strong> — Temporal worker with auto-restart</li>
+</ul>
+
+<div class="callout callout-info">
+  <strong>Note:</strong> The default <code>docker-compose.yml</code> uses <code>temporal start-dev</code> which stores data in memory. Temporal state is lost on restart. For production, use a proper Temporal deployment with PostgreSQL/MySQL persistence.
+</div>
+
+<h3>Production considerations</h3>
+<ul>
+  <li><strong>TLS</strong> — Run behind a reverse proxy (nginx, Caddy, Traefik) that terminates TLS.</li>
+  <li><strong>Temporal</strong> — Deploy a production Temporal cluster with persistent storage. See <a href="https://docs.temporal.io/self-hosted-guide" target="_blank" rel="noopener">Temporal self-hosted guide</a>.</li>
+  <li><strong>Database</strong> — SQLite works for single-node. For multi-node, swap to PostgreSQL via <code>DATABASE_URL</code>.</li>
+  <li><strong>Secrets</strong> — Set <code>TAPCRAFT_API_KEY</code> and <code>TAPCRAFT_SECRET_KEY</code> explicitly. Do not rely on auto-generation.</li>
+  <li><strong>Network</strong> — Restrict access to the Temporal UI port (8233) to trusted networks.</li>
+</ul>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="architecture">Architecture</h2>
+
+<div class="codeblock">
+  <div class="codeblock-bar"><div class="codeblock-dot r"></div><div class="codeblock-dot y"></div><div class="codeblock-dot g"></div><span class="codeblock-title">system overview</span></div>
+  <pre>
+┌──────────────┐     MCP      ┌──────────────┐    gRPC     ┌──────────────┐
+│  Claude Code │────────────▶│  API Server  │───────────▶│   Temporal   │
+│  (Agent)     │             │  (FastAPI)   │            │  (Server)    │
+└──────────────┘             └──────┬───────┘            └──────┬───────┘
+                                    │                           │
+                              ┌─────▼──────┐             ┌─────▼──────┐
+                              │  SQLite DB │             │   Worker   │
+                              │  (data/)   │             │  (Python)  │
+                              └────────────┘             └─────┬──────┘
+                                                               │
+                                                         ┌─────▼──────┐
+                                                         │ Workspace  │
+                                                         │ (Git Repo) │
+                                                         └────────────┘</pre>
+</div>
+
+<h3>Request flow</h3>
+<ol>
+  <li>An agent (or the UI) calls the <strong>API Server</strong> via REST or MCP.</li>
+  <li>The API writes metadata to <strong>SQLite</strong> and starts a workflow via Temporal's gRPC API.</li>
+  <li><strong>Temporal</strong> dispatches tasks to the <strong>Worker</strong>.</li>
+  <li>The Worker dynamically imports workflow and activity code from the <strong>Workspace</strong>.</li>
+  <li>Activities execute I/O (HTTP calls, file operations, etc.) and return results.</li>
+  <li>Temporal persists execution state, handles retries, and records history.</li>
+</ol>
+
+<h3>Project layout</h3>
+<div class="codeblock">
+  <div class="codeblock-bar"><div class="codeblock-dot r"></div><div class="codeblock-dot y"></div><div class="codeblock-dot g"></div><span class="codeblock-title">tapcraft-os/</span></div>
+  <pre>src/
+  api/           <span class="cm"># FastAPI application and route handlers</span>
+  activities/    <span class="cm"># Built-in Temporal activity definitions</span>
+  config/        <span class="cm"># Runtime configuration helpers</span>
+  db/            <span class="cm"># SQLAlchemy models, migrations (Alembic)</span>
+  mcp/           <span class="cm"># MCP server for agent integration</span>
+  models/        <span class="cm"># Pydantic request/response schemas</span>
+  services/      <span class="cm"># Business logic, CRUD, code generation</span>
+  worker/        <span class="cm"># Temporal worker with dynamic discovery</span>
+  workflows/     <span class="cm"># Built-in Temporal workflow definitions</span>
+ui/              <span class="cm"># React + Vite + Tailwind frontend</span>
+site/            <span class="cm"># Static marketing and docs site</span></pre>
+</div>
+
+</main>
+</div>
+
+<script>
+  // Active sidebar link tracking
+  const sections = document.querySelectorAll('h2[id]');
+  const sidebarLinks = document.querySelectorAll('.sidebar-section li a');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        sidebarLinks.forEach(l => l.classList.remove('active'));
+        const link = document.querySelector(`.sidebar-section li a[href="#${entry.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-80px 0px -70% 0px', threshold: 0 });
+  sections.forEach(s => observer.observe(s));
+
+  // Close mobile sidebar on link click
+  document.querySelectorAll('.sidebar-section li a').forEach(link => {
+    link.addEventListener('click', () => {
+      document.querySelector('.sidebar')?.classList.remove('open');
+    });
+  });
+</script>
+</body>
+</html>
