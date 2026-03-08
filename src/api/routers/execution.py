@@ -185,7 +185,7 @@ async def get_run_status(
 
         base_response["status"] = status
         base_response["temporal_status"] = (
-            WorkflowExecutionStatus.Name(wf_status) if wf_status is not None else None
+            WorkflowExecutionStatus.Name(int(wf_status)) if wf_status is not None else None
         )
 
         # Fetch activity execution history from Temporal
@@ -263,8 +263,8 @@ async def get_run_status(
                             str(failed_attrs.failure.message) if failed_attrs.failure else None
                         )
                         info["error_type"] = (
-                            str(failed_attrs.failure.failure_info)
-                            if failed_attrs.failure and failed_attrs.failure.failure_info
+                            str(failed_attrs.failure.server_failure_info)
+                            if failed_attrs.failure and failed_attrs.failure.server_failure_info
                             else None
                         )
                         info["retry_state"] = (
