@@ -117,9 +117,7 @@ async def execute_workflow(
             status="failed",
             error_excerpt=str(e)[:500],
         )
-        raise HTTPException(
-            status_code=500, detail=f"Failed to start workflow execution: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to start workflow execution: {str(e)}")
 
 
 @router.get("/runs/{run_id}/status")
@@ -135,7 +133,9 @@ async def get_run_status(
         raise HTTPException(status_code=404, detail="Run not found")
 
     # Get workflow name for context
-    workflow = await crud.get_workflow(db=db, workflow_id=run.workflow_id) if run.workflow_id else None
+    workflow = (
+        await crud.get_workflow(db=db, workflow_id=run.workflow_id) if run.workflow_id else None
+    )
     workflow_name = workflow.name if workflow else f"Workflow {run.workflow_id}"
 
     base_response = {
@@ -202,13 +202,16 @@ async def get_run_status(
                     input_data = None
                     try:
                         import json as _json
+
                         if attrs.input and attrs.input.payloads:
                             input_data = _json.loads(attrs.input.payloads[0].data)
                     except Exception:
                         pass
                     activity_scheduled[event.event_id] = {
                         "activity_name": attrs.activity_type.name,
-                        "scheduled_at": event.event_time.ToDatetime().isoformat() if event.event_time else None,
+                        "scheduled_at": event.event_time.ToDatetime().isoformat()
+                        if event.event_time
+                        else None,
                         "scheduled_event_id": event.event_id,
                         "attempt": 1,
                         "input": input_data,
@@ -231,10 +234,13 @@ async def get_run_status(
                     if sched_id in activity_scheduled:
                         info = activity_scheduled[sched_id]
                         info["status"] = "completed"
-                        info["ended_at"] = event.event_time.ToDatetime().isoformat() if event.event_time else None
+                        info["ended_at"] = (
+                            event.event_time.ToDatetime().isoformat() if event.event_time else None
+                        )
                         output_data = None
                         try:
                             import json as _json
+
                             if attrs.result and attrs.result.payloads:
                                 output_data = _json.loads(attrs.result.payloads[0].data)
                         except Exception:
@@ -248,11 +254,21 @@ async def get_run_status(
                     if sched_id in activity_scheduled:
                         info = activity_scheduled[sched_id]
                         info["status"] = "failed"
-                        info["ended_at"] = event.event_time.ToDatetime().isoformat() if event.event_time else None
+                        info["ended_at"] = (
+                            event.event_time.ToDatetime().isoformat() if event.event_time else None
+                        )
                         info["error"] = str(attrs.failure.message) if attrs.failure else None
-                        info["error_type"] = str(attrs.failure.failure_info) if attrs.failure and attrs.failure.failure_info else None
+                        info["error_type"] = (
+                            str(attrs.failure.failure_info)
+                            if attrs.failure and attrs.failure.failure_info
+                            else None
+                        )
                         info["retry_state"] = str(attrs.retry_state) if attrs.retry_state else None
-                        info["stack_trace"] = str(attrs.failure.stack_trace) if attrs.failure and attrs.failure.stack_trace else None
+                        info["stack_trace"] = (
+                            str(attrs.failure.stack_trace)
+                            if attrs.failure and attrs.failure.stack_trace
+                            else None
+                        )
                         activity_history.append(info)
 
                 elif et == EventType.EVENT_TYPE_ACTIVITY_TASK_TIMED_OUT:
@@ -261,7 +277,9 @@ async def get_run_status(
                     if sched_id in activity_scheduled:
                         info = activity_scheduled[sched_id]
                         info["status"] = "timed_out"
-                        info["ended_at"] = event.event_time.ToDatetime().isoformat() if event.event_time else None
+                        info["ended_at"] = (
+                            event.event_time.ToDatetime().isoformat() if event.event_time else None
+                        )
                         info["retry_state"] = str(attrs.retry_state) if attrs.retry_state else None
                         activity_history.append(info)
 

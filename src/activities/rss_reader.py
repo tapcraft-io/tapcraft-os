@@ -48,13 +48,15 @@ async def rss_read(config: Dict[str, Any]) -> Dict[str, Any]:
 
     items = []
     for entry in feed.entries[:max_items]:
-        items.append({
-            "title": entry.get("title", ""),
-            "link": entry.get("link", ""),
-            "published": entry.get("published", ""),
-            "summary": entry.get("summary", ""),
-            "author": entry.get("author", ""),
-        })
+        items.append(
+            {
+                "title": entry.get("title", ""),
+                "link": entry.get("link", ""),
+                "published": entry.get("published", ""),
+                "summary": entry.get("summary", ""),
+                "author": entry.get("author", ""),
+            }
+        )
 
     LOGGER.info("feed.rss.read: parsed %d items from %s", len(items), url)
     return {"items": items, "count": len(items)}

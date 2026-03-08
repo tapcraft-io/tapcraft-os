@@ -1,4 +1,5 @@
 """FastAPI application exposing core Tapcraft OS endpoints."""
+
 from __future__ import annotations
 
 import logging
@@ -15,7 +16,18 @@ from src.db.base import init_db
 from src.api.auth import require_api_key, validate_key
 
 # Import routers
-from src.api.routers import activities, workflows, graphs, schedules, runs, execution, secrets, workspaces, webhooks, oauth
+from src.api.routers import (
+    activities,
+    workflows,
+    graphs,
+    schedules,
+    runs,
+    execution,
+    secrets,
+    workspaces,
+    webhooks,
+    oauth,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -79,6 +91,7 @@ def get_config() -> RuntimeConfig:
 
 # --- Public endpoints (no auth) ---
 
+
 @app.get("/health")
 async def health() -> Dict[str, Any]:
     temporal_addr = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
@@ -87,6 +100,7 @@ async def health() -> Dict[str, Any]:
 
     try:
         from temporalio.client import Client
+
         await Client.connect(temporal_addr)
         temporal_connected = True
     except Exception:
@@ -112,6 +126,7 @@ async def auth_validate_key(result: dict = Depends(validate_key)) -> dict:
 
 
 # --- Public webhook inbound endpoint (no auth — verified by HMAC secret) ---
+
 
 @app.post("/hooks/{path:path}")
 async def webhook_inbound(path: str, request: Request) -> Dict[str, Any]:
@@ -140,9 +155,7 @@ async def webhook_inbound(path: str, request: Request) -> Dict[str, Any]:
         # Verify HMAC signature if webhook has a secret
         if webhook.secret:
             signature = request.headers.get("X-Webhook-Signature", "")
-            expected = hmac.new(
-                webhook.secret.encode(), body, hashlib.sha256
-            ).hexdigest()
+            expected = hmac.new(webhook.secret.encode(), body, hashlib.sha256).hexdigest()
             if not hmac.compare_digest(signature, expected):
                 raise HTTPException(status_code=401, detail="Invalid webhook signature")
 
@@ -205,15 +218,12 @@ async def webhook_inbound(path: str, request: Request) -> Dict[str, Any]:
             }
 
         except Exception as e:
-            await crud.update_run(
-                db=db, run_id=run.id, status="failed", error_excerpt=str(e)[:500]
-            )
-            raise HTTPException(
-                status_code=500, detail=f"Failed to start workflow: {str(e)}"
-            )
+            await crud.update_run(db=db, run_id=run.id, status="failed", error_excerpt=str(e)[:500])
+            raise HTTPException(status_code=500, detail=f"Failed to start workflow: {str(e)}")
 
 
 # --- Protected endpoints ---
+
 
 @app.get("/config", dependencies=[Depends(require_api_key)])
 def read_config() -> Dict[str, Any]:

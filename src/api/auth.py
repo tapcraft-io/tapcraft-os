@@ -2,6 +2,7 @@
 
 Single-tenant, self-hosted. One API key gates all access.
 """
+
 from __future__ import annotations
 
 import logging

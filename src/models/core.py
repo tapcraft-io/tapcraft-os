@@ -1,4 +1,5 @@
 """Shared pydantic models for the Tapcraft OS API and services."""
+
 from __future__ import annotations
 
 from datetime import datetime

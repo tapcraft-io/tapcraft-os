@@ -18,9 +18,7 @@ class GitService:
         workspace_path.mkdir(parents=True, exist_ok=True)
         return workspace_path
 
-    def write_workflow_code(
-        self, workspace_id: int, workflow_slug: str, code: str
-    ) -> str:
+    def write_workflow_code(self, workspace_id: int, workflow_slug: str, code: str) -> str:
         """Write workflow code to disk and return the module path."""
         workspace_path = self.get_workspace_path(workspace_id)
         workflows_dir = workspace_path / "workflows"
@@ -56,9 +54,7 @@ class GitService:
         # Return relative module path
         return f"workspace.workspace_{workspace_id}.apps.{app_slug}"
 
-    def commit_changes(
-        self, workspace_id: int, message: str, author: Optional[str] = None
-    ) -> bool:
+    def commit_changes(self, workspace_id: int, message: str, author: Optional[str] = None) -> bool:
         """Commit changes to git (if initialized)."""
         workspace_path = self.get_workspace_path(workspace_id)
 
@@ -66,9 +62,7 @@ class GitService:
         git_dir = workspace_path / ".git"
         if not git_dir.exists():
             # Initialize git repo
-            subprocess.run(
-                ["git", "init"], cwd=workspace_path, capture_output=True, check=True
-            )
+            subprocess.run(["git", "init"], cwd=workspace_path, capture_output=True, check=True)
             subprocess.run(
                 ["git", "config", "user.name", author or "Tapcraft Agent"],
                 cwd=workspace_path,
@@ -83,9 +77,7 @@ class GitService:
             )
 
         # Add all changes
-        subprocess.run(
-            ["git", "add", "."], cwd=workspace_path, capture_output=True, check=True
-        )
+        subprocess.run(["git", "add", "."], cwd=workspace_path, capture_output=True, check=True)
 
         # Commit
         result = subprocess.run(

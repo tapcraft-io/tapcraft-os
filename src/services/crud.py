@@ -82,9 +82,7 @@ async def get_workspace(db: AsyncSession, workspace_id: int) -> Optional[Workspa
     return result.scalars().first()
 
 
-async def list_workspaces(
-    db: AsyncSession, owner_id: Optional[str] = None
-) -> List[Workspace]:
+async def list_workspaces(db: AsyncSession, owner_id: Optional[str] = None) -> List[Workspace]:
     """List all workspaces, optionally filtered by owner."""
     query = select(Workspace)
     if owner_id:
@@ -216,9 +214,7 @@ async def get_activity_operation(
     db: AsyncSession, operation_id: int
 ) -> Optional[ActivityOperation]:
     """Get an activity operation by ID."""
-    result = await db.execute(
-        select(ActivityOperation).where(ActivityOperation.id == operation_id)
-    )
+    result = await db.execute(select(ActivityOperation).where(ActivityOperation.id == operation_id))
     return result.scalars().first()
 
 
@@ -243,10 +239,9 @@ async def get_activity_usage(db: AsyncSession, activity_id: int) -> list:
 
     # Find graphs containing nodes that reference these operations
     from sqlalchemy import distinct
+
     nodes_result = await db.execute(
-        select(distinct(Node.graph_id)).where(
-            Node.activity_operation_id.in_(op_ids)
-        )
+        select(distinct(Node.graph_id)).where(Node.activity_operation_id.in_(op_ids))
     )
     graph_ids = [row[0] for row in nodes_result.all()]
 
@@ -254,9 +249,7 @@ async def get_activity_usage(db: AsyncSession, activity_id: int) -> list:
         return []
 
     # Find workflows that own these graphs
-    workflows_result = await db.execute(
-        select(Workflow).where(Workflow.graph_id.in_(graph_ids))
-    )
+    workflows_result = await db.execute(select(Workflow).where(Workflow.graph_id.in_(graph_ids)))
     workflows = list(workflows_result.scalars().all())
 
     return [
@@ -312,9 +305,7 @@ async def get_workflow(
 
 async def list_workflows(db: AsyncSession, workspace_id: int) -> List[Workflow]:
     """List all workflows in a workspace."""
-    result = await db.execute(
-        select(Workflow).where(Workflow.workspace_id == workspace_id)
-    )
+    result = await db.execute(select(Workflow).where(Workflow.workspace_id == workspace_id))
     return list(result.scalars().all())
 
 
@@ -831,9 +822,7 @@ async def get_oauth_provider(
     return result.scalars().first()
 
 
-async def list_oauth_providers(
-    db: AsyncSession, workspace_id: int
-) -> List[OAuthProvider]:
+async def list_oauth_providers(db: AsyncSession, workspace_id: int) -> List[OAuthProvider]:
     """List all OAuth providers in a workspace."""
     result = await db.execute(
         select(OAuthProvider)
@@ -917,13 +906,9 @@ async def create_oauth_credential(
     return credential
 
 
-async def get_oauth_credential(
-    db: AsyncSession, credential_id: int
-) -> Optional[OAuthCredential]:
+async def get_oauth_credential(db: AsyncSession, credential_id: int) -> Optional[OAuthCredential]:
     """Get an OAuth credential by ID."""
-    result = await db.execute(
-        select(OAuthCredential).where(OAuthCredential.id == credential_id)
-    )
+    result = await db.execute(select(OAuthCredential).where(OAuthCredential.id == credential_id))
     return result.scalars().first()
 
 

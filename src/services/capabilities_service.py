@@ -1,4 +1,5 @@
 """Capability caching and schema utilities."""
+
 from __future__ import annotations
 
 import time

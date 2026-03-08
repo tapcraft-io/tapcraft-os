@@ -33,7 +33,9 @@ def decrypt_value(ciphertext: str) -> str:
     return _get_fernet().decrypt(ciphertext.encode()).decode()
 
 
-async def set_secret(db: AsyncSession, name: str, value: str, category: Optional[str] = None) -> Secret:
+async def set_secret(
+    db: AsyncSession, name: str, value: str, category: Optional[str] = None
+) -> Secret:
     """Create or update a secret."""
     encrypted = encrypt_value(value)
     result = await db.execute(select(Secret).where(Secret.name == name))

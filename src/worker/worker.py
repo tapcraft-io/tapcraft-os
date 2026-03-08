@@ -1,4 +1,5 @@
 """Temporal worker entrypoint with dynamic workflow and activity loading."""
+
 from __future__ import annotations
 
 import asyncio
@@ -121,9 +122,7 @@ def discover_workflows_from_workspace() -> List[Type[workflow.Workflow]]:
                     parts = [workspace_id] + list(rel.parts) + [module_name]
                     full_module_name = f"workspace.{'.'.join(parts)}"
 
-                    spec = importlib.util.spec_from_file_location(
-                        full_module_name, workflow_file
-                    )
+                    spec = importlib.util.spec_from_file_location(full_module_name, workflow_file)
                     if spec and spec.loader:
                         module = importlib.util.module_from_spec(spec)
                         sys.modules[full_module_name] = module
@@ -166,9 +165,7 @@ def discover_activities_from_workspace() -> List[Callable[..., Any]]:
                     parts = [workspace_id] + list(rel.parts) + [py_file.stem]
                     full_module_name = f"workspace.{'.'.join(parts)}"
 
-                    spec = importlib.util.spec_from_file_location(
-                        full_module_name, py_file
-                    )
+                    spec = importlib.util.spec_from_file_location(full_module_name, py_file)
                     if not (spec and spec.loader):
                         continue
 
@@ -179,9 +176,7 @@ def discover_activities_from_workspace() -> List[Callable[..., Any]]:
                     for attr_name, obj in inspect.getmembers(module):
                         if callable(obj) and hasattr(obj, "__temporal_activity_definition"):
                             activities.append(obj)
-                            LOGGER.info(
-                                f"Discovered activity: {attr_name} from {full_module_name}"
-                            )
+                            LOGGER.info(f"Discovered activity: {attr_name} from {full_module_name}")
 
                 except Exception as e:
                     LOGGER.error(f"Failed to load activities from {py_file}: {e}")
@@ -281,9 +276,7 @@ def snapshot_workspace_files() -> set[str]:
     return files
 
 
-async def watch_for_new_workflows(
-    known_files: set[str], shutdown_event: asyncio.Event
-) -> None:
+async def watch_for_new_workflows(known_files: set[str], shutdown_event: asyncio.Event) -> None:
     """Poll workspace for new workflow/activity files; signal shutdown when found."""
     while not shutdown_event.is_set():
         await asyncio.sleep(RELOAD_CHECK_INTERVAL)
@@ -332,14 +325,10 @@ async def main() -> None:
 
     # Get all activities (built-in + workspace-discovered + registry)
     all_activities = (
-        list(built_in_activities())
-        + workspace_activities
-        + activity_registry.get_all_activities()
+        list(built_in_activities()) + workspace_activities + activity_registry.get_all_activities()
     )
 
-    LOGGER.info(
-        f"Registering {len(all_workflows)} workflows and {len(all_activities)} activities"
-    )
+    LOGGER.info(f"Registering {len(all_workflows)} workflows and {len(all_activities)} activities")
 
     # Reconcile DB schedules with Temporal on startup
     try:

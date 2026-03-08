@@ -174,24 +174,18 @@ class {workflow_name}:
         """Generate RetryPolicy(...) code."""
         parts = [f"maximum_attempts={eh['retry_max_attempts']}"]
         if eh["retry_initial_interval"] != 1:
-            parts.append(
-                f"initial_interval=timedelta(seconds={eh['retry_initial_interval']})"
-            )
+            parts.append(f"initial_interval=timedelta(seconds={eh['retry_initial_interval']})")
         if eh["retry_backoff"] != 2.0:
             parts.append(f"backoff_coefficient={eh['retry_backoff']}")
         if eh["retry_max_interval"] != 60:
-            parts.append(
-                f"maximum_interval=timedelta(seconds={eh['retry_max_interval']})"
-            )
+            parts.append(f"maximum_interval=timedelta(seconds={eh['retry_max_interval']})")
         return f"RetryPolicy({', '.join(parts)})"
 
     def _gen_timeouts(self, eh: Dict[str, Any]) -> str:
         """Generate timeout keyword arguments."""
         args = [f"start_to_close_timeout=timedelta(seconds={eh['stc_timeout']})"]
         if eh["stsc_timeout"]:
-            args.append(
-                f"schedule_to_close_timeout=timedelta(seconds={eh['stsc_timeout']})"
-            )
+            args.append(f"schedule_to_close_timeout=timedelta(seconds={eh['stsc_timeout']})")
         return ",\n    ".join(args)
 
     def _strip_eh_keys(self, config: str) -> str:
@@ -215,14 +209,14 @@ class {workflow_name}:
         if kind == "activity_operation":
             op_id = node.get("activity_operation_id")
             if not op_id or op_id not in activity_operations:
-                return f'# TODO: Unknown activity operation {op_id}'
+                return f"# TODO: Unknown activity operation {op_id}"
 
             activity_name = activity_operations[op_id]["code_symbol"]
             clean = self._strip_eh_keys(config)
             rp = self._gen_retry(eh)
             to = self._gen_timeouts(eh)
 
-            return f'''# Step {step_idx + 1}: {label}
+            return f"""# Step {step_idx + 1}: {label}
 step_{step_idx}_result = await workflow.execute_activity(
     "{activity_name}",
     args=[{clean}],
@@ -231,7 +225,7 @@ step_{step_idx}_result = await workflow.execute_activity(
 )
 results["step_{step_idx}"] = step_{step_idx}_result
 workflow.logger.info(f"Completed step {step_idx + 1}: {label}")
-'''
+"""
 
         elif kind == "primitive":
             primitive_type = node.get("primitive_type", "unknown")
@@ -240,7 +234,7 @@ workflow.logger.info(f"Completed step {step_idx + 1}: {label}")
 
             if primitive_type == "http_request":
                 clean = self._strip_eh_keys(config)
-                return f'''# Step {step_idx + 1}: {label} (HTTP Request)
+                return f"""# Step {step_idx + 1}: {label} (HTTP Request)
 step_{step_idx}_result = await workflow.execute_activity(
     "net.http.request",
     args=[{clean}],
@@ -248,7 +242,7 @@ step_{step_idx}_result = await workflow.execute_activity(
     retry_policy={rp},
 )
 results["step_{step_idx}"] = step_{step_idx}_result
-'''
+"""
 
             elif primitive_type == "delay":
                 try:
@@ -257,15 +251,15 @@ results["step_{step_idx}"] = step_{step_idx}_result
                 except (json.JSONDecodeError, TypeError):
                     seconds = 60
 
-                return f'''# Step {step_idx + 1}: {label} (Delay)
+                return f"""# Step {step_idx + 1}: {label} (Delay)
 workflow.logger.info("Sleeping for {seconds} seconds")
 await workflow.sleep({seconds})
 results["step_{step_idx}"] = {{"status": "slept", "seconds": {seconds}}}
-'''
+"""
 
             elif primitive_type == "browse":
                 clean = self._strip_eh_keys(config)
-                return f'''# Step {step_idx + 1}: {label} (Browse)
+                return f"""# Step {step_idx + 1}: {label} (Browse)
 step_{step_idx}_result = await workflow.execute_activity(
     "browse_page",
     args=[{clean}],
@@ -274,7 +268,7 @@ step_{step_idx}_result = await workflow.execute_activity(
 )
 results["step_{step_idx}"] = step_{step_idx}_result
 workflow.logger.info(f"Completed browse step: {label}")
-'''
+"""
 
             elif primitive_type == "log":
                 try:
@@ -285,21 +279,17 @@ workflow.logger.info(f"Completed browse step: {label}")
                     message = "Log step executed"
                     level = "info"
 
-                safe_msg = (
-                    message.replace("\\", "\\\\")
-                    .replace('"', '\\"')
-                    .replace("\n", "\\n")
-                )
+                safe_msg = message.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
 
-                return f'''# Step {step_idx + 1}: {label} (Log)
+                return f"""# Step {step_idx + 1}: {label} (Log)
 workflow.logger.{level}("{safe_msg}")
 results["step_{step_idx}"] = {{"logged": True, "message": "{safe_msg}"}}
-'''
+"""
 
         elif kind == "logic":
-            return f'# TODO: Logic node - {label}'
+            return f"# TODO: Logic node - {label}"
 
-        return f'# TODO: Unknown node kind - {kind}'
+        return f"# TODO: Unknown node kind - {kind}"
 
     def _indent(self, text: str, levels: int = 1) -> str:
         """Indent text by the specified number of levels."""

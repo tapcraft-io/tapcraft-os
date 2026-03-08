@@ -78,6 +78,7 @@ async def clone_or_pull(workspace: Workspace, db: AsyncSession) -> Tuple[str, Op
     if workspace.repo_auth_secret:
         try:
             from src.services.secrets import get_secret
+
             token = await get_secret(workspace.repo_auth_secret)
             clone_url = _inject_auth_into_url(workspace.repo_url, token)
         except Exception as e:
@@ -93,7 +94,9 @@ async def clone_or_pull(workspace: Workspace, db: AsyncSession) -> Tuple[str, Op
             # Pull
             LOGGER.info(f"Pulling repo for workspace {workspace.id} at {repo_path}")
             proc = await asyncio.create_subprocess_exec(
-                "git", "pull", "--ff-only",
+                "git",
+                "pull",
+                "--ff-only",
                 cwd=str(repo_path),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -106,14 +109,14 @@ async def clone_or_pull(workspace: Workspace, db: AsyncSession) -> Tuple[str, Op
         else:
             # Shallow clone
             repo_path.parent.mkdir(parents=True, exist_ok=True)
-            LOGGER.info(
-                f"Cloning {workspace.repo_url} (branch={branch}) "
-                f"into {repo_path}"
-            )
+            LOGGER.info(f"Cloning {workspace.repo_url} (branch={branch}) " f"into {repo_path}")
             proc = await asyncio.create_subprocess_exec(
-                "git", "clone",
-                "--depth", "1",
-                "--branch", branch,
+                "git",
+                "clone",
+                "--depth",
+                "1",
+                "--branch",
+                branch,
                 clone_url,
                 str(repo_path),
                 stdout=asyncio.subprocess.PIPE,
@@ -155,9 +158,7 @@ def discover_repo_activities(workspace_id: int) -> List[Callable[..., Any]]:
             continue
 
         try:
-            module_name = (
-                f"workspace.workspace_{workspace_id}.repo.activities.{py_file.stem}"
-            )
+            module_name = f"workspace.workspace_{workspace_id}.repo.activities.{py_file.stem}"
             spec = importlib.util.spec_from_file_location(module_name, py_file)
             if not (spec and spec.loader):
                 continue
@@ -169,9 +170,7 @@ def discover_repo_activities(workspace_id: int) -> List[Callable[..., Any]]:
             for attr_name, obj in inspect.getmembers(module):
                 if callable(obj) and hasattr(obj, "__temporal_activity_definition"):
                     activities.append(obj)
-                    LOGGER.info(
-                        f"Discovered activity: {attr_name} from {module_name}"
-                    )
+                    LOGGER.info(f"Discovered activity: {attr_name} from {module_name}")
         except Exception as e:
             LOGGER.error(f"Failed to load activities from {py_file}: {e}")
 
@@ -192,9 +191,7 @@ def discover_repo_workflows(workspace_id: int) -> List[Type]:
             continue
 
         try:
-            module_name = (
-                f"workspace.workspace_{workspace_id}.repo.workflows.{py_file.stem}"
-            )
+            module_name = f"workspace.workspace_{workspace_id}.repo.workflows.{py_file.stem}"
             spec = importlib.util.spec_from_file_location(module_name, py_file)
             if not (spec and spec.loader):
                 continue
@@ -206,9 +203,7 @@ def discover_repo_workflows(workspace_id: int) -> List[Type]:
             for attr_name, obj in inspect.getmembers(module, inspect.isclass):
                 if hasattr(obj, "__temporal_workflow_definition"):
                     workflows.append(obj)
-                    LOGGER.info(
-                        f"Discovered workflow: {attr_name} from {module_name}"
-                    )
+                    LOGGER.info(f"Discovered workflow: {attr_name} from {module_name}")
         except Exception as e:
             LOGGER.error(f"Failed to load workflows from {py_file}: {e}")
 

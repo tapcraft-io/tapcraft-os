@@ -41,7 +41,7 @@ ui/dist/
 .pnpm-store/
 
 # Build artifacts
-*.png
+/*.png
 *.jpg
 *.jpeg
 

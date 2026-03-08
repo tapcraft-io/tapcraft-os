@@ -67,15 +67,18 @@ mcp = FastMCP(
 
 # ===== helpers =============================================================
 
+
 async def _get_db():
     """Get a fresh async DB session."""
     from src.db.base import AsyncSessionLocal
+
     return AsyncSessionLocal()
 
 
 async def _get_temporal_client():
     """Connect to the Temporal server."""
     from temporalio.client import Client
+
     address = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
     return await Client.connect(address)
 
@@ -95,6 +98,7 @@ def _safe_json(raw: str) -> Any:
 
 # ---- Workflows ------------------------------------------------------------
 
+
 @mcp.tool()
 async def tapcraft_list_workflows() -> str:
     """List all workflows with name, slug, status, and last run info."""
@@ -107,21 +111,25 @@ async def tapcraft_list_workflows() -> str:
         for w in workflows:
             runs = await crud.list_runs(db, WORKSPACE_ID, workflow_id=w.id)
             last_run = runs[0] if runs else None
-            result.append({
-                "id": w.id,
-                "name": w.name,
-                "slug": w.slug,
-                "description": w.description,
-                "code_module_path": w.code_module_path,
-                "entrypoint_symbol": w.entrypoint_symbol,
-                "created_at": _iso(w.created_at),
-                "last_run": {
-                    "id": last_run.id,
-                    "status": last_run.status,
-                    "started_at": _iso(last_run.started_at),
-                    "ended_at": _iso(last_run.ended_at),
-                } if last_run else None,
-            })
+            result.append(
+                {
+                    "id": w.id,
+                    "name": w.name,
+                    "slug": w.slug,
+                    "description": w.description,
+                    "code_module_path": w.code_module_path,
+                    "entrypoint_symbol": w.entrypoint_symbol,
+                    "created_at": _iso(w.created_at),
+                    "last_run": {
+                        "id": last_run.id,
+                        "status": last_run.status,
+                        "started_at": _iso(last_run.started_at),
+                        "ended_at": _iso(last_run.ended_at),
+                    }
+                    if last_run
+                    else None,
+                }
+            )
         return json.dumps(result, indent=2)
     finally:
         await db.close()
@@ -187,17 +195,20 @@ async def tapcraft_get_workflow(workflow_id: int) -> str:
                 ],
             }
 
-        return json.dumps({
-            "id": wf.id,
-            "name": wf.name,
-            "slug": wf.slug,
-            "description": wf.description,
-            "code_module_path": wf.code_module_path,
-            "entrypoint_symbol": wf.entrypoint_symbol,
-            "code": code,
-            "graph": graph_data,
-            "created_at": _iso(wf.created_at),
-        }, indent=2)
+        return json.dumps(
+            {
+                "id": wf.id,
+                "name": wf.name,
+                "slug": wf.slug,
+                "description": wf.description,
+                "code_module_path": wf.code_module_path,
+                "entrypoint_symbol": wf.entrypoint_symbol,
+                "code": code,
+                "graph": graph_data,
+                "created_at": _iso(wf.created_at),
+            },
+            indent=2,
+        )
     finally:
         await db.close()
 
@@ -257,9 +268,7 @@ async def tapcraft_deploy_workflow(
         code_module = f"workspace.workspace_{WORKSPACE_ID}.workflows.{module_stem}"
 
         # Create a graph for the workflow (required by schema)
-        graph = await crud.create_graph(
-            db, WORKSPACE_ID, owner_type="workflow", owner_id=0
-        )
+        graph = await crud.create_graph(db, WORKSPACE_ID, owner_type="workflow", owner_id=0)
 
         # Check if workflow with this slug already exists
         existing_workflows = await crud.list_workflows(db, WORKSPACE_ID)
@@ -269,14 +278,16 @@ async def tapcraft_deploy_workflow(
             # Update existing workflow code on disk (already written above)
             await crud.update_workflow(db, existing.id, name=name, description=description)
             await db.commit()
-            return json.dumps({
-                "status": "updated",
-                "workflow_id": existing.id,
-                "slug": slug,
-                "entrypoint": existing.entrypoint_symbol,
-                "code_path": str(module_path),
-                "message": f"Updated workflow '{name}'. Code written to {module_path}.",
-            })
+            return json.dumps(
+                {
+                    "status": "updated",
+                    "workflow_id": existing.id,
+                    "slug": slug,
+                    "entrypoint": existing.entrypoint_symbol,
+                    "code_path": str(module_path),
+                    "message": f"Updated workflow '{name}'. Code written to {module_path}.",
+                }
+            )
 
         # Create new workflow
         wf = await crud.create_workflow(
@@ -290,20 +301,23 @@ async def tapcraft_deploy_workflow(
             description=description,
         )
 
-        return json.dumps({
-            "status": "created",
-            "workflow_id": wf.id,
-            "slug": slug,
-            "entrypoint": entrypoint,
-            "code_path": str(module_path),
-            "message": f"Deployed workflow '{name}'. Code written to {module_path}. "
-                       f"Use tapcraft_run_workflow to execute it.",
-        })
+        return json.dumps(
+            {
+                "status": "created",
+                "workflow_id": wf.id,
+                "slug": slug,
+                "entrypoint": entrypoint,
+                "code_path": str(module_path),
+                "message": f"Deployed workflow '{name}'. Code written to {module_path}. "
+                f"Use tapcraft_run_workflow to execute it.",
+            }
+        )
     finally:
         await db.close()
 
 
 # ---- Runs -----------------------------------------------------------------
+
 
 @mcp.tool()
 async def tapcraft_run_workflow(
@@ -351,19 +365,23 @@ async def tapcraft_run_workflow(
             )
             await crud.update_run(db, run.id, status="running")
 
-            return json.dumps({
-                "run_id": run.id,
-                "workflow_id": wf.id,
-                "temporal_workflow_id": temporal_wf_id,
-                "status": "running",
-            })
+            return json.dumps(
+                {
+                    "run_id": run.id,
+                    "workflow_id": wf.id,
+                    "temporal_workflow_id": temporal_wf_id,
+                    "status": "running",
+                }
+            )
         except Exception as e:
             await crud.update_run(db, run.id, status="failed", error_excerpt=str(e)[:500])
-            return json.dumps({
-                "run_id": run.id,
-                "status": "failed",
-                "error": str(e),
-            })
+            return json.dumps(
+                {
+                    "run_id": run.id,
+                    "status": "failed",
+                    "error": str(e),
+                }
+            )
     finally:
         await db.close()
 
@@ -433,7 +451,9 @@ async def tapcraft_get_run(run_id: int) -> str:
                         attrs = event.activity_task_scheduled_event_attributes
                         activity_scheduled[event.event_id] = {
                             "activity_name": attrs.activity_type.name,
-                            "scheduled_at": event.event_time.ToDatetime().isoformat() if event.event_time else None,
+                            "scheduled_at": event.event_time.ToDatetime().isoformat()
+                            if event.event_time
+                            else None,
                             "scheduled_event_id": event.event_id,
                         }
                     elif et == EventType.EVENT_TYPE_ACTIVITY_TASK_COMPLETED:
@@ -442,7 +462,11 @@ async def tapcraft_get_run(run_id: int) -> str:
                         if sid in activity_scheduled:
                             info = activity_scheduled[sid]
                             info["status"] = "completed"
-                            info["ended_at"] = event.event_time.ToDatetime().isoformat() if event.event_time else None
+                            info["ended_at"] = (
+                                event.event_time.ToDatetime().isoformat()
+                                if event.event_time
+                                else None
+                            )
                             activity_history.append(info)
                     elif et == EventType.EVENT_TYPE_ACTIVITY_TASK_FAILED:
                         attrs = event.activity_task_failed_event_attributes
@@ -487,22 +511,22 @@ async def tapcraft_list_runs(
 
     db = await _get_db()
     try:
-        runs = await crud.list_runs(
-            db, WORKSPACE_ID, workflow_id=workflow_id, status=status
-        )
+        runs = await crud.list_runs(db, WORKSPACE_ID, workflow_id=workflow_id, status=status)
         runs = runs[:limit]
         result = []
         for r in runs:
-            result.append({
-                "id": r.id,
-                "workflow_id": r.workflow_id,
-                "status": r.status,
-                "started_at": _iso(r.started_at),
-                "ended_at": _iso(r.ended_at),
-                "error_excerpt": r.error_excerpt,
-                "temporal_workflow_id": r.temporal_workflow_id,
-                "created_at": _iso(r.created_at),
-            })
+            result.append(
+                {
+                    "id": r.id,
+                    "workflow_id": r.workflow_id,
+                    "status": r.status,
+                    "started_at": _iso(r.started_at),
+                    "ended_at": _iso(r.ended_at),
+                    "error_excerpt": r.error_excerpt,
+                    "temporal_workflow_id": r.temporal_workflow_id,
+                    "created_at": _iso(r.created_at),
+                }
+            )
         return json.dumps(result, indent=2)
     finally:
         await db.close()
@@ -526,10 +550,12 @@ async def tapcraft_retry_run(run_id: int, input_config: dict | None = None) -> s
             return json.dumps({"error": f"Run {run_id} not found"})
 
         if run.status not in ("failed", "cancelled"):
-            return json.dumps({
-                "error": f"Cannot retry run with status '{run.status}'. "
-                         f"Only failed or cancelled runs can be retried."
-            })
+            return json.dumps(
+                {
+                    "error": f"Cannot retry run with status '{run.status}'. "
+                    f"Only failed or cancelled runs can be retried."
+                }
+            )
 
         wf = await crud.get_workflow(db, run.workflow_id)
         if not wf:
@@ -569,12 +595,14 @@ async def tapcraft_retry_run(run_id: int, input_config: dict | None = None) -> s
             )
             await crud.update_run(db, new_run.id, status="running")
 
-            return json.dumps({
-                "new_run_id": new_run.id,
-                "original_run_id": run_id,
-                "temporal_workflow_id": temporal_wf_id,
-                "status": "running",
-            })
+            return json.dumps(
+                {
+                    "new_run_id": new_run.id,
+                    "original_run_id": run_id,
+                    "temporal_workflow_id": temporal_wf_id,
+                    "status": "running",
+                }
+            )
         except Exception as e:
             await crud.update_run(db, new_run.id, status="failed", error_excerpt=str(e)[:500])
             return json.dumps({"new_run_id": new_run.id, "status": "failed", "error": str(e)})
@@ -598,14 +626,22 @@ async def tapcraft_cancel_run(run_id: int) -> str:
             return json.dumps({"error": f"Run {run_id} not found"})
 
         if run.status not in ("queued", "running"):
-            return json.dumps({
-                "error": f"Cannot cancel run with status '{run.status}'. "
-                         f"Only queued or running runs can be cancelled."
-            })
+            return json.dumps(
+                {
+                    "error": f"Cannot cancel run with status '{run.status}'. "
+                    f"Only queued or running runs can be cancelled."
+                }
+            )
 
         if not run.temporal_workflow_id:
             await crud.update_run(db, run.id, status="cancelled", error_excerpt="Cancelled by user")
-            return json.dumps({"run_id": run.id, "status": "cancelled", "message": "Cancelled (not yet on Temporal)"})
+            return json.dumps(
+                {
+                    "run_id": run.id,
+                    "status": "cancelled",
+                    "message": "Cancelled (not yet on Temporal)",
+                }
+            )
 
         try:
             client = await _get_temporal_client()
@@ -616,7 +652,9 @@ async def tapcraft_cancel_run(run_id: int) -> str:
                 await handle.terminate(reason="Cancelled via Tapcraft MCP")
 
             await crud.update_run(db, run.id, status="cancelled", error_excerpt="Cancelled by user")
-            return json.dumps({"run_id": run.id, "status": "cancelled", "message": "Cancelled successfully"})
+            return json.dumps(
+                {"run_id": run.id, "status": "cancelled", "message": "Cancelled successfully"}
+            )
         except Exception as e:
             return json.dumps({"error": f"Failed to cancel: {e}"})
     finally:
@@ -624,6 +662,7 @@ async def tapcraft_cancel_run(run_id: int) -> str:
 
 
 # ---- Activities -----------------------------------------------------------
+
 
 @mcp.tool()
 async def tapcraft_list_activities() -> str:
@@ -707,15 +746,17 @@ async def tapcraft_list_activities() -> str:
         # Add user-registered activities
         for act in activities:
             for op in act.operations:
-                result.append({
-                    "name": op.code_symbol,
-                    "type": "user",
-                    "display_name": op.display_name,
-                    "description": op.description,
-                    "config_schema": _safe_json(op.config_schema),
-                    "activity_id": act.id,
-                    "operation_id": op.id,
-                })
+                result.append(
+                    {
+                        "name": op.code_symbol,
+                        "type": "user",
+                        "display_name": op.display_name,
+                        "description": op.description,
+                        "config_schema": _safe_json(op.config_schema),
+                        "activity_id": act.id,
+                        "operation_id": op.id,
+                    }
+                )
 
         return json.dumps(result, indent=2)
     finally:
@@ -885,26 +926,31 @@ async def tapcraft_get_activity_schema(activity_name: str) -> str:
 
     # Search user activities in DB
     from src.services import crud
+
     db = await _get_db()
     try:
         activities = await crud.list_activities(db, WORKSPACE_ID)
         for act in activities:
             for op in act.operations:
                 if op.code_symbol == activity_name:
-                    return json.dumps({
-                        "name": op.code_symbol,
-                        "display_name": op.display_name,
-                        "description": op.description,
-                        "config_schema": _safe_json(op.config_schema),
-                        "activity_id": act.id,
-                        "operation_id": op.id,
-                    }, indent=2)
+                    return json.dumps(
+                        {
+                            "name": op.code_symbol,
+                            "display_name": op.display_name,
+                            "description": op.description,
+                            "config_schema": _safe_json(op.config_schema),
+                            "activity_id": act.id,
+                            "operation_id": op.id,
+                        },
+                        indent=2,
+                    )
         return json.dumps({"error": f"Activity '{activity_name}' not found"})
     finally:
         await db.close()
 
 
 # ---- Secrets --------------------------------------------------------------
+
 
 @mcp.tool()
 async def tapcraft_manage_secret(
@@ -952,12 +998,15 @@ async def tapcraft_manage_secret(
             return json.dumps({"error": f"Secret '{name}' not found"})
 
         else:
-            return json.dumps({"error": f"Unknown action '{action}'. Use 'set', 'delete', or 'list'."})
+            return json.dumps(
+                {"error": f"Unknown action '{action}'. Use 'set', 'delete', or 'list'."}
+            )
     finally:
         await db.close()
 
 
 # ---- Schedules ------------------------------------------------------------
+
 
 @mcp.tool()
 async def tapcraft_list_schedules(workflow_id: int | None = None) -> str:
@@ -973,17 +1022,19 @@ async def tapcraft_list_schedules(workflow_id: int | None = None) -> str:
         schedules = await crud.list_schedules(db, WORKSPACE_ID, workflow_id=workflow_id)
         result = []
         for s in schedules:
-            result.append({
-                "id": s.id,
-                "workflow_id": s.workflow_id,
-                "name": s.name,
-                "cron": s.cron,
-                "timezone": s.timezone,
-                "enabled": s.enabled,
-                "next_run_at": _iso(s.next_run_at),
-                "last_run_at": _iso(s.last_run_at),
-                "created_at": _iso(s.created_at),
-            })
+            result.append(
+                {
+                    "id": s.id,
+                    "workflow_id": s.workflow_id,
+                    "name": s.name,
+                    "cron": s.cron,
+                    "timezone": s.timezone,
+                    "enabled": s.enabled,
+                    "next_run_at": _iso(s.next_run_at),
+                    "last_run_at": _iso(s.last_run_at),
+                    "created_at": _iso(s.created_at),
+                }
+            )
         return json.dumps(result, indent=2)
     finally:
         await db.close()
@@ -1041,24 +1092,29 @@ async def tapcraft_create_schedule(
             )
         except Exception as e:
             LOGGER.error("Failed to create Temporal schedule: %s", e)
-            return json.dumps({
-                "schedule_id": schedule.id,
-                "status": "created_in_db_only",
-                "warning": f"DB record created but Temporal schedule failed: {e}",
-            })
+            return json.dumps(
+                {
+                    "schedule_id": schedule.id,
+                    "status": "created_in_db_only",
+                    "warning": f"DB record created but Temporal schedule failed: {e}",
+                }
+            )
 
-        return json.dumps({
-            "schedule_id": schedule.id,
-            "workflow_id": workflow_id,
-            "cron": cron,
-            "enabled": enabled,
-            "status": "created",
-        })
+        return json.dumps(
+            {
+                "schedule_id": schedule.id,
+                "workflow_id": workflow_id,
+                "cron": cron,
+                "enabled": enabled,
+                "status": "created",
+            }
+        )
     finally:
         await db.close()
 
 
 # ---- Repo sync ------------------------------------------------------------
+
 
 @mcp.tool()
 async def tapcraft_sync_repo() -> str:
@@ -1068,7 +1124,11 @@ async def tapcraft_sync_repo() -> str:
     new activities and workflows.
     """
     from src.services import crud
-    from src.services.repo_sync import clone_or_pull, discover_repo_activities, discover_repo_workflows
+    from src.services.repo_sync import (
+        clone_or_pull,
+        discover_repo_activities,
+        discover_repo_workflows,
+    )
 
     db = await _get_db()
     try:
@@ -1089,17 +1149,21 @@ async def tapcraft_sync_repo() -> str:
             wfs = discover_repo_workflows(WORKSPACE_ID)
             discovered_workflows = [getattr(w, "__name__", str(w)) for w in wfs]
 
-        return json.dumps({
-            "sync_status": sync_status,
-            "sync_error": sync_error,
-            "discovered_activities": discovered_activities,
-            "discovered_workflows": discovered_workflows,
-        }, indent=2)
+        return json.dumps(
+            {
+                "sync_status": sync_status,
+                "sync_error": sync_error,
+                "discovered_activities": discovered_activities,
+                "discovered_workflows": discovered_workflows,
+            },
+            indent=2,
+        )
     finally:
         await db.close()
 
 
 # ===== Webhook Tools =======================================================
+
 
 @mcp.tool()
 async def tapcraft_list_webhooks(workflow_id: int | None = None) -> str:
@@ -1108,9 +1172,7 @@ async def tapcraft_list_webhooks(workflow_id: int | None = None) -> str:
 
     db = await _get_db()
     try:
-        webhooks = await crud.list_webhooks(
-            db, workspace_id=WORKSPACE_ID, workflow_id=workflow_id
-        )
+        webhooks = await crud.list_webhooks(db, workspace_id=WORKSPACE_ID, workflow_id=workflow_id)
         return json.dumps(
             [
                 {
@@ -1182,6 +1244,7 @@ async def tapcraft_delete_webhook(webhook_id: int) -> str:
 
 
 # ===== MCP Resources =======================================================
+
 
 @mcp.resource("tapcraft://docs/writing-workflows")
 async def docs_writing_workflows() -> str:
@@ -1753,6 +1816,7 @@ result = await workflow.execute_activity(
 
 
 # ===== Entry point =========================================================
+
 
 def main():
     """Run the Tapcraft MCP server with stdio transport."""

@@ -1,4 +1,5 @@
 """Service for managing Temporal schedules."""
+
 from __future__ import annotations
 
 import logging
@@ -35,8 +36,13 @@ def validate_cron(expression: str) -> bool:
     # Allow common shorthands
     if expr.startswith("@"):
         return expr in (
-            "@annually", "@yearly", "@monthly", "@weekly", "@daily",
-            "@hourly", "@reboot",
+            "@annually",
+            "@yearly",
+            "@monthly",
+            "@weekly",
+            "@daily",
+            "@hourly",
+            "@reboot",
         )
     parts = expr.split()
     if len(parts) != 5:
@@ -143,7 +149,9 @@ async def delete_temporal_schedule(schedule_id: int) -> None:
         LOGGER.info("Deleted Temporal schedule %s", _schedule_id(schedule_id))
     except Exception as e:
         if "not found" in str(e).lower():
-            LOGGER.warning("Schedule %s not found in Temporal (already deleted?)", _schedule_id(schedule_id))
+            LOGGER.warning(
+                "Schedule %s not found in Temporal (already deleted?)", _schedule_id(schedule_id)
+            )
         else:
             raise
 
@@ -181,10 +189,12 @@ async def describe_temporal_schedule(schedule_id: int) -> dict | None:
                     "started_at": a.actual_time.isoformat() if a.actual_time else None,
                 }
                 for a in (info.recent_actions or [])
-            ] if info else [],
-            "next_action_times": [
-                t.isoformat() for t in (info.next_action_times or [])
-            ] if info else [],
+            ]
+            if info
+            else [],
+            "next_action_times": [t.isoformat() for t in (info.next_action_times or [])]
+            if info
+            else [],
         }
     except Exception as e:
         if "not found" in str(e).lower():
@@ -216,7 +226,8 @@ async def reconcile_schedules_from_db() -> int:
                 if not workflow:
                     LOGGER.warning(
                         "Schedule %d references missing workflow %d — skipping",
-                        sched.id, sched.workflow_id,
+                        sched.id,
+                        sched.workflow_id,
                     )
                     continue
 

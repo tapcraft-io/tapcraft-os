@@ -1,4 +1,5 @@
 """Static validation utilities for generated workflow modules."""
+
 from __future__ import annotations
 
 import ast
@@ -82,7 +83,10 @@ class ValidationService:
                 if candidate in available_tools and candidate not in discovered_tools:
                     discovered_tools.append(candidate)
                 elif "." in candidate and _TOOL_STRING.match(candidate):
-                    if candidate not in available_tools and candidate not in diagnostics.unknown_tools:
+                    if (
+                        candidate not in available_tools
+                        and candidate not in diagnostics.unknown_tools
+                    ):
                         diagnostics.unknown_tools.append(candidate)
 
         if banned_hits:

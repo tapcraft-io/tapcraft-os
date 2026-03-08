@@ -127,7 +127,6 @@ async def get_activity_code(
     if not activity:
         raise HTTPException(status_code=404, detail="Activity not found")
 
-
     # code_module_path is like "workspace.workspace_1.activities.my_activity"
     parts = activity.code_module_path.split(".")
     code = None
@@ -135,6 +134,7 @@ async def get_activity_code(
     # Try to read from workspace disk first
     if len(parts) >= 4 and parts[0] == "workspace":
         from src.services.git_service import GitService
+
         git_service = GitService()
         workspace_id = int(parts[1].replace("workspace_", ""))
         workspace_path = git_service.get_workspace_path(workspace_id)
@@ -146,40 +146,45 @@ async def get_activity_code(
     if code is None and activity.operations:
         lines = [
             '"""',
-            f'Activity: {activity.name}',
-            f'Module: {activity.code_module_path}',
-            '',
+            f"Activity: {activity.name}",
+            f"Module: {activity.code_module_path}",
+            "",
             f'{activity.description or "No description."}',
-            '',
-            'This activity is registered in the worker via ActivityRegistry.',
-            'Operations are implemented as Temporal activity stubs.',
+            "",
+            "This activity is registered in the worker via ActivityRegistry.",
+            "Operations are implemented as Temporal activity stubs.",
             '"""',
-            '',
+            "",
         ]
         for op in activity.operations:
-            lines.append(f'# Operation: {op.display_name}')
-            lines.append(f'# Activity name: {op.code_symbol}')
+            lines.append(f"# Operation: {op.display_name}")
+            lines.append(f"# Activity name: {op.code_symbol}")
             if op.description:
-                lines.append(f'# {op.description}')
+                lines.append(f"# {op.description}")
             if op.config_schema:
                 import json
+
                 try:
-                    schema = json.loads(op.config_schema) if isinstance(op.config_schema, str) else op.config_schema
+                    schema = (
+                        json.loads(op.config_schema)
+                        if isinstance(op.config_schema, str)
+                        else op.config_schema
+                    )
                     props = schema.get("properties", {})
                     required = schema.get("required", [])
                     if props:
-                        lines.append('# Config schema:')
+                        lines.append("# Config schema:")
                         for k, v in props.items():
                             req = " (required)" if k in required else ""
                             lines.append(f'#   {k}: {v.get("type", "any")}{req}')
                 except Exception:
                     pass
-            lines.append('')
+            lines.append("")
             lines.append(f'@activity.defn(name="{op.code_symbol}")')
-            lines.append(f'async def {op.name}(config: Dict[str, Any]) -> Dict[str, Any]:')
+            lines.append(f"async def {op.name}(config: Dict[str, Any]) -> Dict[str, Any]:")
             lines.append(f'    """{op.description or op.display_name}"""')
-            lines.append('    ...')
-            lines.append('')
+            lines.append("    ...")
+            lines.append("")
         code = "\n".join(lines)
 
     return {"code": code, "module_path": activity.code_module_path}

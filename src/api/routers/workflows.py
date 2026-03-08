@@ -109,9 +109,7 @@ async def get_workflow_code(
     workspace_id = int(parts[1].replace("workspace_", ""))
     slug = parts[-1]
 
-    code = _git_service.read_workflow_code(
-        workspace_id=workspace_id, workflow_slug=slug
-    )
+    code = _git_service.read_workflow_code(workspace_id=workspace_id, workflow_slug=slug)
 
     if not code:
         raise HTTPException(status_code=404, detail="Workflow code not found on disk")
@@ -180,9 +178,7 @@ async def regenerate_workflow_code(
     }
 
     # 4. Derive class name from workflow name
-    workflow_class_name = "".join(
-        word.capitalize() for word in workflow.name.split()
-    )
+    workflow_class_name = "".join(word.capitalize() for word in workflow.name.split())
 
     # 5. Generate code
     workflow_code = _code_generator.generate_workflow_from_graph(

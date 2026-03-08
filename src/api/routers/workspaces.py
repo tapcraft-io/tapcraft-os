@@ -95,13 +95,12 @@ async def sync_workspace_repo(
     if sync_status == "synced":
         discovered_activities = [
             getattr(a, "__temporal_activity_definition", {}).get("name", a.__name__)
-            if hasattr(a, "__temporal_activity_definition") and isinstance(getattr(a, "__temporal_activity_definition"), dict)
+            if hasattr(a, "__temporal_activity_definition")
+            and isinstance(getattr(a, "__temporal_activity_definition"), dict)
             else a.__name__
             for a in discover_repo_activities(workspace_id)
         ]
-        discovered_workflows = [
-            cls.__name__ for cls in discover_repo_workflows(workspace_id)
-        ]
+        discovered_workflows = [cls.__name__ for cls in discover_repo_workflows(workspace_id)]
 
     return RepoSyncResponse(
         workspace_id=workspace_id,

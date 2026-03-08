@@ -84,9 +84,7 @@ async def list_schedules(
     db: AsyncSession = Depends(get_db),
 ):
     """List all schedules in a workspace."""
-    schedules = await crud.list_schedules(
-        db=db, workspace_id=workspace_id, workflow_id=workflow_id
-    )
+    schedules = await crud.list_schedules(db=db, workspace_id=workspace_id, workflow_id=workflow_id)
     return schedules
 
 

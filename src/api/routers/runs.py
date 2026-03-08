@@ -82,8 +82,12 @@ async def list_runs(
                         run.status = new_status
                 except Exception as e:
                     if "not found" in str(e).lower():
-                        await crud.update_run(db=db, run_id=run.id, status="failed",
-                                              error_excerpt="Workflow no longer exists in Temporal")
+                        await crud.update_run(
+                            db=db,
+                            run_id=run.id,
+                            status="failed",
+                            error_excerpt="Workflow no longer exists in Temporal",
+                        )
                         run.status = "failed"
                     else:
                         LOGGER.warning("Failed to sync status for run %s: %s", run.id, e)
@@ -168,6 +172,7 @@ async def retry_run(
 
     # Determine input config: use override if provided, else reuse original
     import json
+
     if body.input_config is not None:
         input_config = body.input_config
         input_config_str = json.dumps(input_config)
@@ -214,9 +219,7 @@ async def retry_run(
         )
 
     except Exception as e:
-        await crud.update_run(
-            db=db, run_id=new_run.id, status="failed", error_excerpt=str(e)[:500]
-        )
+        await crud.update_run(db=db, run_id=new_run.id, status="failed", error_excerpt=str(e)[:500])
         raise HTTPException(
             status_code=500,
             detail=f"Failed to start retry workflow: {str(e)}",
@@ -254,7 +257,10 @@ async def cancel_run(
     if not run.temporal_workflow_id:
         # No Temporal execution — just mark as cancelled in DB
         await crud.update_run(
-            db=db, run_id=run.id, status="cancelled", error_excerpt="Cancelled by user (no Temporal execution)"
+            db=db,
+            run_id=run.id,
+            status="cancelled",
+            error_excerpt="Cancelled by user (no Temporal execution)",
         )
         return CancelResponse(
             run_id=run.id,
@@ -272,7 +278,8 @@ async def cancel_run(
         except Exception as cancel_err:
             LOGGER.warning(
                 "Cancel request failed for run %d, attempting terminate: %s",
-                run.id, cancel_err,
+                run.id,
+                cancel_err,
             )
             await handle.terminate(reason="Cancelled by user via Tapcraft API")
 

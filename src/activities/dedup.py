@@ -54,7 +54,9 @@ async def dedup(config: Dict[str, Any]) -> Dict[str, Any]:
 
         # Convert unhashable values to their string repr so we can track them.
         try:
-            hashable_key = key_value if isinstance(key_value, (str, int, float, bool)) else repr(key_value)
+            hashable_key = (
+                key_value if isinstance(key_value, (str, int, float, bool)) else repr(key_value)
+            )
         except Exception:
             hashable_key = id(key_value)
 
