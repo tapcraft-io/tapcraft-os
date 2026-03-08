@@ -140,6 +140,8 @@ async def update_schedule(
         cron=schedule_data.cron,
         enabled=schedule_data.enabled,
     )
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Schedule not found after update")
 
     # Sync to Temporal
     workflow = await crud.get_workflow(db=db, workflow_id=schedule.workflow_id)

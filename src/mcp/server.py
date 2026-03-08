@@ -677,7 +677,7 @@ async def tapcraft_list_activities() -> str:
         activities = await crud.list_activities(db, WORKSPACE_ID)
 
         # Start with built-in activities
-        result = [
+        result: list[dict[str, Any]] = [
             {
                 "name": "net.http.request",
                 "type": "built-in",

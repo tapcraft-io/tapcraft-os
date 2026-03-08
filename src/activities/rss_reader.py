@@ -25,7 +25,7 @@ async def rss_read(config: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         dict with ``items`` (list of entry dicts) and ``count``.
     """
-    import feedparser
+    import feedparser  # type: ignore[import-untyped]
 
     url = config.get("url", "")
     max_items = config.get("max_items", _DEFAULT_MAX_ITEMS)

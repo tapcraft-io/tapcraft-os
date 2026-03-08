@@ -7,8 +7,17 @@ import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-from temporalio import schedule
-from temporalio.client import Client, ScheduleHandle
+from temporalio.client import (
+    Client,
+    Schedule,
+    ScheduleActionStartWorkflow,
+    ScheduleHandle,
+    ScheduleListDescription,
+    ScheduleSpec as TemporalScheduleSpec,
+    ScheduleState,
+    ScheduleUpdate,
+    ScheduleUpdateInput,
+)
 
 from src.models.core import ScheduleSpec
 
@@ -34,71 +43,74 @@ class TemporalService:
     async def start_workflow(self, workflow_ref: str, args: Dict[str, Any]) -> str:
         client = await self.get_client()
         handle = await client.start_workflow(
-            workflow=workflow_ref,
+            workflow_ref,
+            arg=args,
             id=f"{workflow_ref}-{int(time.time()*1000)}",
             task_queue=self._config.task_queue,
-            input=args,
         )
         return handle.id
 
     async def create_schedule(self, spec: ScheduleSpec) -> ScheduleHandle:
         client = await self.get_client()
-        schedule_spec = schedule.Schedule(
-            action=schedule.ScheduleActionStartWorkflow(
-                workflow=spec.workflow_ref,
-                task_queue=self._config.task_queue,
+        temporal_schedule = Schedule(
+            action=ScheduleActionStartWorkflow(
+                spec.workflow_ref,
                 args=[spec.args],
+                id=f"scheduled-{spec.name}-{{{{.ScheduledTime}}}}",
+                task_queue=self._config.task_queue,
             ),
-            spec=schedule.ScheduleSpec(cron_expressions=[spec.cron], timezone=spec.timezone),
+            spec=TemporalScheduleSpec(cron_expressions=[spec.cron], time_zone_name=spec.timezone),
         )
-        return await client.create_schedule(spec.name, schedule_spec)
+        return await client.create_schedule(spec.name, temporal_schedule)
 
     async def get_schedule(self, name: str) -> ScheduleHandle:
         client = await self.get_client()
         return client.get_schedule_handle(name)
 
-    async def list_schedules(self) -> List[schedule.ScheduleListDescription]:
+    async def list_schedules(self) -> List[ScheduleListDescription]:
         client = await self.get_client()
-        descriptions: List[schedule.ScheduleListDescription] = []
-        async for desc in client.list_schedules():
+        descriptions: List[ScheduleListDescription] = []
+        async for desc in await client.list_schedules():
             descriptions.append(desc)
         return descriptions
 
     async def update_schedule(self, name: str, patch: Dict[str, Any]) -> None:
         handle = await self.get_schedule(name)
 
-        def updater(input_: schedule.ScheduleUpdateInput) -> schedule.Schedule:
+        def updater(input_: ScheduleUpdateInput) -> ScheduleUpdate:
             current = input_.description.schedule
             action = current.action
-            if isinstance(action, schedule.ScheduleActionStartWorkflow):
+            if isinstance(action, ScheduleActionStartWorkflow):
                 args = action.args[0] if action.args else {}
             else:
                 args = {}
 
             cron = patch.get("cron") or current.spec.cron_expressions[0]
-            timezone = patch.get("timezone") or current.spec.timezone
+            time_zone = patch.get("timezone") or current.spec.time_zone_name
             if "args" in patch:
                 args = patch["args"]
 
-            if isinstance(action, schedule.ScheduleActionStartWorkflow):
-                action = schedule.ScheduleActionStartWorkflow(
-                    workflow=action.workflow,
-                    task_queue=action.task_queue,
+            if isinstance(action, ScheduleActionStartWorkflow):
+                action = ScheduleActionStartWorkflow(
+                    action.workflow,
                     args=[args],
+                    id=action.id,
+                    task_queue=action.task_queue,
                 )
 
-            state = current.state or schedule.ScheduleState()
+            state = current.state or ScheduleState()
             if patch.get("status") == "paused":
-                state = schedule.ScheduleState(paused=True)
+                state = ScheduleState(paused=True)
             elif patch.get("status") == "running":
-                state = schedule.ScheduleState(paused=False)
+                state = ScheduleState(paused=False)
 
-            return schedule.Schedule(
+            updated = Schedule(
                 action=action,
-                spec=schedule.ScheduleSpec(cron_expressions=[cron], timezone=timezone),
-                policies=current.policies,
+                spec=TemporalScheduleSpec(cron_expressions=[cron], time_zone_name=time_zone),
+                policy=current.policy,
                 state=state,
             )
+            return ScheduleUpdate(schedule=updated)
 
         await handle.update(updater)
 

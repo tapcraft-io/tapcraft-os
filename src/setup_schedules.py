@@ -17,9 +17,9 @@ from temporalio.client import (
     ScheduleActionStartWorkflow,
     ScheduleSpec,
     ScheduleState,
+    ScheduleUpdate,
+    ScheduleUpdateInput,
 )
-
-from src.workflows.signal_pipeline import SignalPipelineWorkflow
 
 LOGGER = logging.getLogger(__name__)
 
@@ -29,18 +29,15 @@ TASK_QUEUE = os.getenv("TASK_QUEUE", "default")
 # ---------------------------------------------------------------------------
 # Schedule definitions
 # ---------------------------------------------------------------------------
-SCHEDULES = [
+# Each entry maps a schedule ID to a workflow name (string-based) and cron.
+# Workflow classes are resolved dynamically at runtime.
+SCHEDULES: list[dict[str, str]] = [
     {
         "id": "signal-processor",
         "workflow": "SignalPipelineWorkflow",
         "cron": "*/30 * * * *",
     },
 ]
-
-# Map workflow name -> class for action binding
-_WORKFLOW_MAP = {
-    "SignalPipelineWorkflow": SignalPipelineWorkflow,
-}
 
 
 async def ensure_schedules() -> int:
@@ -50,18 +47,12 @@ async def ensure_schedules() -> int:
 
     for spec in SCHEDULES:
         schedule_id = spec["id"]
-        workflow_cls = _WORKFLOW_MAP.get(spec["workflow"])
-        if workflow_cls is None:
-            LOGGER.error(
-                "Unknown workflow %s for schedule %s — skipping", spec["workflow"], schedule_id
-            )
-            continue
-
+        workflow_name = spec["workflow"]
         cron = spec["cron"]
 
         schedule = Schedule(
             action=ScheduleActionStartWorkflow(
-                workflow_cls.run,
+                workflow_name,
                 id=f"scheduled-{schedule_id}-{{{{.ScheduledTime}}}}",
                 task_queue=TASK_QUEUE,
             ),
@@ -73,7 +64,7 @@ async def ensure_schedules() -> int:
         try:
             await client.create_schedule(schedule_id, schedule)
             LOGGER.info(
-                "Created schedule %s (cron=%s, workflow=%s)", schedule_id, cron, spec["workflow"]
+                "Created schedule %s (cron=%s, workflow=%s)", schedule_id, cron, workflow_name
             )
             count += 1
         except Exception as e:
@@ -81,18 +72,18 @@ async def ensure_schedules() -> int:
                 try:
                     handle = client.get_schedule_handle(schedule_id)
 
-                    async def _updater(existing: Schedule) -> Schedule:
-                        existing.action = schedule.action
-                        existing.spec = schedule.spec
-                        existing.state = schedule.state
-                        return existing
+                    def _updater(
+                        input: ScheduleUpdateInput,
+                        _schedule: Schedule = schedule,
+                    ) -> ScheduleUpdate:
+                        return ScheduleUpdate(schedule=_schedule)
 
                     await handle.update(_updater)
                     LOGGER.info(
                         "Updated schedule %s (cron=%s, workflow=%s)",
                         schedule_id,
                         cron,
-                        spec["workflow"],
+                        workflow_name,
                     )
                     count += 1
                 except Exception as ue:

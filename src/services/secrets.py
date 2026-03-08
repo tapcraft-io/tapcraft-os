@@ -1,10 +1,10 @@
 """Secrets management with Fernet encryption."""
 
 import os
-from typing import Optional
+from typing import Any, Optional
 
 from cryptography.fernet import Fernet
-from sqlalchemy import select, delete as sa_delete
+from sqlalchemy import CursorResult, select, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Secret
@@ -80,6 +80,8 @@ async def list_secrets(db: AsyncSession) -> list[Secret]:
 
 
 async def delete_secret(db: AsyncSession, name: str) -> bool:
-    result = await db.execute(sa_delete(Secret).where(Secret.name == name))
+    cursor_result: CursorResult[Any] = await db.execute(  # type: ignore[assignment]
+        sa_delete(Secret).where(Secret.name == name)
+    )
     await db.flush()
-    return result.rowcount > 0
+    return (cursor_result.rowcount or 0) > 0

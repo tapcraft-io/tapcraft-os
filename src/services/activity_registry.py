@@ -4,7 +4,7 @@ Registers built-in primitives and activity operations loaded from the database.
 """
 
 import importlib
-from typing import Dict, List, Callable, Any
+from typing import Dict, List, Callable, Any, Optional
 from temporalio import activity
 
 
@@ -27,6 +27,9 @@ class ActivityRegistry:
             url = config.get("url")
             headers = config.get("headers", {})
             body = config.get("body")
+
+            if not url:
+                return {"error": "No URL provided"}
 
             async with httpx.AsyncClient() as client:
                 response = await client.request(
@@ -73,8 +76,11 @@ class ActivityRegistry:
         self.activities["files.write"] = files_write
 
     def register_activity_operation(
-        self, operation_name: str, code_symbol: str, implementation: Callable = None
-    ):
+        self,
+        operation_name: str,
+        code_symbol: str,
+        implementation: Optional[Callable[..., Any]] = None,
+    ) -> None:
         """
         Register an activity operation as a Temporal activity.
 
@@ -84,7 +90,7 @@ class ActivityRegistry:
             implementation: Optional actual implementation function
         """
 
-        if implementation:
+        if implementation is not None:
             # Use provided implementation
             activity_func = activity.defn(name=code_symbol)(implementation)
             self.activities[code_symbol] = activity_func

@@ -1,6 +1,6 @@
 """API routes for Workspaces and repo sync."""
 
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,7 +36,7 @@ async def create_workspace(
 
 @router.get("", response_model=List[WorkspaceResponse])
 async def list_workspaces(
-    owner_id: str = None,
+    owner_id: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ):
     """List all workspaces."""

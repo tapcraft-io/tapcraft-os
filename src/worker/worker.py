@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Type
 
-from temporalio import activity, workflow
+from temporalio import activity
 from temporalio.client import Client
 from temporalio.worker import Worker
 
@@ -75,9 +75,9 @@ def _collect_search_dirs(workspace_dir: Path, kind: str) -> List[Path]:
     return dirs
 
 
-def discover_workflows_from_generated() -> List[Type[workflow.Workflow]]:
+def discover_workflows_from_generated() -> List[Type[Any]]:
     """Discover workflows from src/generated directory (legacy)."""
-    workflows: List[Type[workflow.Workflow]] = []
+    workflows: List[Type[Any]] = []
 
     if not GENERATED_PATH.exists():
         return workflows
@@ -94,9 +94,9 @@ def discover_workflows_from_generated() -> List[Type[workflow.Workflow]]:
     return workflows
 
 
-def discover_workflows_from_workspace() -> List[Type[workflow.Workflow]]:
+def discover_workflows_from_workspace() -> List[Type[Any]]:
     """Discover workflows from workspace directories (generated + repo)."""
-    workflows: List[Type[workflow.Workflow]] = []
+    workflows: List[Type[Any]] = []
 
     if not WORKSPACE_ROOT.exists():
         LOGGER.warning(f"Workspace root does not exist: {WORKSPACE_ROOT}")

@@ -61,6 +61,7 @@ async def list_runs(
 
             for run in stale_runs:
                 try:
+                    assert run.temporal_workflow_id is not None  # filtered above
                     handle = client.get_workflow_handle(run.temporal_workflow_id)
                     describe = await handle.describe()
 

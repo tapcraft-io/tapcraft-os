@@ -12,6 +12,8 @@ from temporalio.client import (
     ScheduleActionStartWorkflow,
     ScheduleSpec,
     ScheduleState,
+    ScheduleUpdate,
+    ScheduleUpdateInput,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -125,16 +127,17 @@ async def update_temporal_schedule(
 
     temporal_id = _schedule_id(schedule_id)
 
-    async def _updater(input: Schedule) -> Schedule:
-        input.action = ScheduleActionStartWorkflow(
+    def _updater(input: ScheduleUpdateInput) -> ScheduleUpdate:
+        existing = input.description.schedule
+        existing.action = ScheduleActionStartWorkflow(
             workflow_class.run,
             input_config or {},
             id=f"scheduled-{temporal_id}-{{{{.ScheduledTime}}}}",
             task_queue=TASK_QUEUE,
         )
-        input.spec = ScheduleSpec(cron_expressions=[cron])
-        input.state = ScheduleState(paused=not enabled)
-        return input
+        existing.spec = ScheduleSpec(cron_expressions=[cron])
+        existing.state = ScheduleState(paused=not enabled)
+        return ScheduleUpdate(schedule=existing)
 
     await handle.update(_updater)
     LOGGER.info("Updated Temporal schedule %s", temporal_id)
@@ -160,7 +163,7 @@ async def pause_temporal_schedule(schedule_id: int) -> None:
     """Pause a Temporal schedule."""
     client = await _get_client()
     handle = client.get_schedule_handle(_schedule_id(schedule_id))
-    await handle.pause("Paused via Tapcraft API")
+    await handle.pause(note="Paused via Tapcraft API")
     LOGGER.info("Paused Temporal schedule %s", _schedule_id(schedule_id))
 
 
@@ -168,7 +171,7 @@ async def unpause_temporal_schedule(schedule_id: int) -> None:
     """Unpause (resume) a Temporal schedule."""
     client = await _get_client()
     handle = client.get_schedule_handle(_schedule_id(schedule_id))
-    await handle.unpause("Resumed via Tapcraft API")
+    await handle.unpause(note="Resumed via Tapcraft API")
     LOGGER.info("Unpaused Temporal schedule %s", _schedule_id(schedule_id))
 
 
@@ -185,8 +188,8 @@ async def describe_temporal_schedule(schedule_id: int) -> dict | None:
             "num_actions_taken": info.num_actions if info else 0,
             "recent_actions": [
                 {
-                    "scheduled_at": a.schedule_time.isoformat() if a.schedule_time else None,
-                    "started_at": a.actual_time.isoformat() if a.actual_time else None,
+                    "scheduled_at": a.scheduled_at.isoformat() if a.scheduled_at else None,
+                    "started_at": a.started_at.isoformat() if a.started_at else None,
                 }
                 for a in (info.recent_actions or [])
             ]
