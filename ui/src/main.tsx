@@ -7,11 +7,13 @@ import Dashboard from './pages/Dashboard';
 import Workflows from './pages/Workflows';
 import Settings from './pages/Settings';
 import Secrets from './pages/Secrets';
+import OAuthProviders from './pages/OAuthProviders';
 import Activities from './pages/Activities';
 import ActivityDetail from './pages/ActivityDetail';
 import Runs from './pages/Runs';
 import RunDetail from './pages/RunDetail';
 import WorkflowEditor from './pages/WorkflowEditor';
+import Webhooks from './pages/Webhooks';
 import { ToastProvider } from './components/Toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthGate } from './components/AuthGate';
@@ -29,7 +31,9 @@ const router = createBrowserRouter([
       { path: 'workflows/:id', element: <ErrorBoundary><WorkflowEditor /></ErrorBoundary> },
       { path: 'runs', element: <ErrorBoundary><Runs /></ErrorBoundary> },
       { path: 'runs/:id', element: <ErrorBoundary><RunDetail /></ErrorBoundary> },
+      { path: 'webhooks', element: <ErrorBoundary><Webhooks /></ErrorBoundary> },
       { path: 'secrets', element: <ErrorBoundary><Secrets /></ErrorBoundary> },
+      { path: 'oauth', element: <ErrorBoundary><OAuthProviders /></ErrorBoundary> },
       { path: 'settings', element: <ErrorBoundary><Settings /></ErrorBoundary> }
     ]
   }

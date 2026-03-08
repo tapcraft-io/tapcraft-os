@@ -1099,6 +1099,88 @@ async def tapcraft_sync_repo() -> str:
         await db.close()
 
 
+# ===== Webhook Tools =======================================================
+
+@mcp.tool()
+async def tapcraft_list_webhooks(workflow_id: int | None = None) -> str:
+    """List all webhooks in the workspace, optionally filtered by workflow."""
+    from src.services import crud
+
+    db = await _get_db()
+    try:
+        webhooks = await crud.list_webhooks(
+            db, workspace_id=WORKSPACE_ID, workflow_id=workflow_id
+        )
+        return json.dumps(
+            [
+                {
+                    "id": w.id,
+                    "workflow_id": w.workflow_id,
+                    "path": w.path,
+                    "enabled": w.enabled,
+                    "trigger_count": w.trigger_count,
+                    "last_triggered_at": w.last_triggered_at.isoformat()
+                    if w.last_triggered_at
+                    else None,
+                }
+                for w in webhooks
+            ],
+            indent=2,
+        )
+    finally:
+        await db.close()
+
+
+@mcp.tool()
+async def tapcraft_create_webhook(
+    workflow_id: int,
+    path: str,
+    secret: str | None = None,
+) -> str:
+    """Create a webhook trigger for a workflow.
+
+    Args:
+        workflow_id: ID of the workflow to trigger
+        path: URL path for the webhook (e.g. "my-webhook")
+        secret: Optional HMAC secret for signature verification
+    """
+    from src.services import crud
+
+    db = await _get_db()
+    try:
+        webhook = await crud.create_webhook(
+            db,
+            workspace_id=WORKSPACE_ID,
+            workflow_id=workflow_id,
+            path=path,
+            secret=secret,
+        )
+        return json.dumps(
+            {
+                "id": webhook.id,
+                "path": webhook.path,
+                "url": f"POST /hooks/{webhook.path}",
+                "enabled": webhook.enabled,
+            },
+            indent=2,
+        )
+    finally:
+        await db.close()
+
+
+@mcp.tool()
+async def tapcraft_delete_webhook(webhook_id: int) -> str:
+    """Delete a webhook by ID."""
+    from src.services import crud
+
+    db = await _get_db()
+    try:
+        deleted = await crud.delete_webhook(db, webhook_id)
+        return json.dumps({"deleted": deleted})
+    finally:
+        await db.close()
+
+
 # ===== MCP Resources =======================================================
 
 @mcp.resource("tapcraft://docs/writing-workflows")

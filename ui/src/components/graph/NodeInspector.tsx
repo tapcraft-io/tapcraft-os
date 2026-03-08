@@ -201,10 +201,124 @@ function ConfigForm({ configSchema, config, onSave }: {
   );
 }
 
+// Error handling field definitions
+const ERROR_HANDLING_FIELDS = [
+  { key: '_retry_max_attempts', label: 'Max Retry Attempts', default: 3, description: 'Maximum number of retry attempts' },
+  { key: '_retry_initial_interval', label: 'Initial Retry Interval', default: 1, description: 'Initial retry interval in seconds' },
+  { key: '_retry_backoff_coefficient', label: 'Backoff Coefficient', default: 2.0, description: 'Multiplier for retry interval', step: 0.1 },
+  { key: '_retry_max_interval', label: 'Max Retry Interval', default: 60, description: 'Maximum retry interval in seconds' },
+  { key: '_start_to_close_timeout', label: 'Start-to-Close Timeout', default: 300, description: 'Timeout in seconds for activity execution' },
+  { key: '_schedule_to_close_timeout', label: 'Schedule-to-Close Timeout', default: undefined as number | undefined, description: 'Overall timeout in seconds (optional)' },
+] as const;
+
+/** Returns true if the node kind/type supports error handling configuration. */
+function supportsErrorHandling(kind: string, primitiveType: string | null | undefined): boolean {
+  if (kind === 'activity_operation') return true;
+  if (kind === 'primitive' && (primitiveType === 'http_request' || primitiveType === 'browse')) return true;
+  return false;
+}
+
+function ErrorHandlingSection({ config, onSave, isOpen, onToggle }: {
+  config: Record<string, unknown>;
+  onSave: (newConfig: Record<string, unknown>) => void;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  const [localValues, setLocalValues] = useState<Record<string, unknown>>({});
+  const prevConfigRef = useRef(config);
+
+  useEffect(() => {
+    if (config !== prevConfigRef.current) {
+      const vals: Record<string, unknown> = {};
+      for (const field of ERROR_HANDLING_FIELDS) {
+        if (config[field.key] !== undefined) {
+          vals[field.key] = config[field.key];
+        }
+      }
+      setLocalValues(vals);
+      prevConfigRef.current = config;
+    }
+  }, [config]);
+
+  // Initialize local values from config on mount
+  useEffect(() => {
+    const vals: Record<string, unknown> = {};
+    for (const field of ERROR_HANDLING_FIELDS) {
+      if (config[field.key] !== undefined) {
+        vals[field.key] = config[field.key];
+      }
+    }
+    setLocalValues(vals);
+  }, []);
+
+  const handleChange = (key: string, rawValue: string) => {
+    const value = rawValue === '' ? undefined : Number(rawValue);
+    setLocalValues((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleBlur = () => {
+    // Merge error handling values into the full config
+    const merged = { ...config };
+    for (const field of ERROR_HANDLING_FIELDS) {
+      const val = localValues[field.key];
+      if (val !== undefined && val !== null && !Number.isNaN(val as number)) {
+        merged[field.key] = val;
+      } else {
+        delete merged[field.key];
+      }
+    }
+    if (JSON.stringify(merged) !== JSON.stringify(config)) {
+      onSave(merged);
+    }
+  };
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex items-center gap-1 text-xs text-zinc-500 uppercase tracking-wider w-full mb-2"
+      >
+        <span
+          className="material-symbols-outlined text-[14px] transition-transform"
+          style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}
+        >
+          chevron_right
+        </span>
+        Error Handling
+      </button>
+      {isOpen && (
+        <div className="space-y-3">
+          {ERROR_HANDLING_FIELDS.map((field) => {
+            const value = localValues[field.key] ?? '';
+            return (
+              <div key={field.key}>
+                <label className="text-xs text-zinc-500 uppercase tracking-wider">{field.label}</label>
+                <p className="text-xs text-zinc-600 mt-0.5">{field.description}</p>
+                <input
+                  type="number"
+                  step={'step' in field ? field.step : 1}
+                  placeholder={field.default !== undefined ? String(field.default) : ''}
+                  value={value as number | ''}
+                  onChange={(e) => handleChange(field.key, e.target.value)}
+                  onBlur={handleBlur}
+                  className="mt-1 w-full px-3 py-1.5 text-sm bg-zinc-800 border border-border-dark rounded-lg
+                    text-zinc-200 focus:outline-none focus:border-primary/50"
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function NodeInspector({ selectedNode, workflow, onUpdateNode }: NodeInspectorProps) {
   const [tab, setTab] = useState<'node' | 'workflow'>('node');
   const [label, setLabel] = useState('');
   const [config, setConfig] = useState<Record<string, unknown>>({});
+  const [errorHandlingOpen, setErrorHandlingOpen] = useState(false);
 
   const nodeData = selectedNode?.data as unknown as (WorkflowNodeData & { configData?: Record<string, unknown>; configSchema?: Record<string, unknown>; dbId?: number }) | null;
 
@@ -292,6 +406,16 @@ export default function NodeInspector({ selectedNode, workflow, onUpdateNode }: 
                 onSave={handleConfigSave}
               />
             </div>
+
+            {/* Error Handling */}
+            {supportsErrorHandling(nodeData.kind, nodeData.primitiveType) && (
+              <ErrorHandlingSection
+                config={config}
+                onSave={handleConfigSave}
+                isOpen={errorHandlingOpen}
+                onToggle={() => setErrorHandlingOpen((v) => !v)}
+              />
+            )}
 
             {/* View Logs placeholder */}
             <button className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-zinc-400

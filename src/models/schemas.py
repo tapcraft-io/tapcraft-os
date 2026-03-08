@@ -348,3 +348,108 @@ class RunResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ============================================================================
+# Webhook Schemas
+# ============================================================================
+
+
+class WebhookCreate(BaseModel):
+    """Schema for creating a webhook."""
+
+    workflow_id: int
+    path: str
+    secret: Optional[str] = None
+    enabled: bool = True
+
+
+class WebhookUpdate(BaseModel):
+    """Schema for updating a webhook."""
+
+    path: Optional[str] = None
+    secret: Optional[str] = None
+    enabled: Optional[bool] = None
+
+
+class WebhookResponse(BaseModel):
+    """Schema for webhook response."""
+
+    id: int
+    workspace_id: int
+    workflow_id: int
+    path: str
+    secret: Optional[str]
+    enabled: bool
+    last_triggered_at: Optional[datetime]
+    trigger_count: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ============================================================================
+# OAuth Schemas
+# ============================================================================
+
+
+class OAuthProviderCreate(BaseModel):
+    """Schema for creating an OAuth provider."""
+
+    name: str
+    slug: str
+    client_id: str
+    client_secret: str
+    auth_url: str
+    token_url: str
+    scopes: str = ""
+    redirect_uri: Optional[str] = None
+
+
+class OAuthProviderUpdate(BaseModel):
+    """Schema for updating an OAuth provider."""
+
+    name: Optional[str] = None
+    client_id: Optional[str] = None
+    client_secret: Optional[str] = None
+    scopes: Optional[str] = None
+    redirect_uri: Optional[str] = None
+
+
+class OAuthProviderResponse(BaseModel):
+    """Schema for OAuth provider response."""
+
+    id: int
+    workspace_id: int
+    name: str
+    slug: str
+    client_id: str
+    auth_url: str
+    token_url: str
+    scopes: str
+    redirect_uri: Optional[str]
+    credential_count: int = 0
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class OAuthCredentialResponse(BaseModel):
+    """Schema for OAuth credential response (tokens never exposed)."""
+
+    id: int
+    workspace_id: int
+    provider_id: int
+    name: str
+    token_type: str
+    expires_at: Optional[datetime]
+    scopes: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

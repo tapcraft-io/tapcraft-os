@@ -53,6 +53,12 @@ class Workspace(Base):
     runs: Mapped[list["Run"]] = relationship(
         "Run", back_populates="workspace", cascade="all, delete-orphan"
     )
+    webhooks: Mapped[list["Webhook"]] = relationship(
+        "Webhook", back_populates="workspace", cascade="all, delete-orphan"
+    )
+    oauth_providers: Mapped[list["OAuthProvider"]] = relationship(
+        "OAuthProvider", back_populates="workspace", cascade="all, delete-orphan"
+    )
 
 
 class Activity(Base):
@@ -132,6 +138,9 @@ class Workflow(Base):
     )
     runs: Mapped[list["Run"]] = relationship(
         "Run", back_populates="workflow", cascade="all, delete-orphan"
+    )
+    webhooks: Mapped[list["Webhook"]] = relationship(
+        "Webhook", back_populates="workflow", cascade="all, delete-orphan"
     )
 
 
@@ -284,3 +293,77 @@ class Secret(Base):
     encrypted_value: Mapped[str] = mapped_column(Text, nullable=False)
     category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class Webhook(Base):
+    """Inbound webhook trigger that starts a workflow execution."""
+
+    __tablename__ = "webhooks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
+    workflow_id: Mapped[int] = mapped_column(ForeignKey("workflows.id"), nullable=False)
+    path: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    secret: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    last_triggered_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    trigger_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    # Relationships
+    workspace: Mapped["Workspace"] = relationship("Workspace", back_populates="webhooks")
+    workflow: Mapped["Workflow"] = relationship("Workflow", back_populates="webhooks")
+
+
+class OAuthProvider(Base):
+    """OAuth provider configuration for external service integrations."""
+
+    __tablename__ = "oauth_providers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    slug: Mapped[str] = mapped_column(String(255), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(500), nullable=False)
+    encrypted_client_secret: Mapped[str] = mapped_column(Text, nullable=False)
+    auth_url: Mapped[str] = mapped_column(String(1000), nullable=False)
+    token_url: Mapped[str] = mapped_column(String(1000), nullable=False)
+    scopes: Mapped[str] = mapped_column(String(1000), nullable=False, default="")
+    redirect_uri: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    # Relationships
+    workspace: Mapped["Workspace"] = relationship("Workspace", back_populates="oauth_providers")
+    credentials: Mapped[list["OAuthCredential"]] = relationship(
+        "OAuthCredential", back_populates="provider", cascade="all, delete-orphan"
+    )
+
+
+class OAuthCredential(Base):
+    """Stored OAuth tokens for an authenticated account."""
+
+    __tablename__ = "oauth_credentials"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
+    provider_id: Mapped[int] = mapped_column(ForeignKey("oauth_providers.id"), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    encrypted_access_token: Mapped[str] = mapped_column(Text, nullable=False)
+    encrypted_refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    token_type: Mapped[str] = mapped_column(String(50), nullable=False, default="Bearer")
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    scopes: Mapped[str] = mapped_column(String(1000), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    # Relationships
+    workspace: Mapped["Workspace"] = relationship("Workspace")
+    provider: Mapped["OAuthProvider"] = relationship("OAuthProvider", back_populates="credentials")

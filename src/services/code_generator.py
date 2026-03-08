@@ -155,6 +155,53 @@ class {workflow_name}:
 
         return class_code
 
+    def _parse_error_handling(self, config: str) -> Dict[str, Any]:
+        """Extract retry policy and timeout settings from node config."""
+        try:
+            cd = json.loads(config) if isinstance(config, str) else config
+        except (json.JSONDecodeError, TypeError):
+            cd = {}
+        return {
+            "retry_max_attempts": cd.get("_retry_max_attempts", 3),
+            "retry_initial_interval": cd.get("_retry_initial_interval", 1),
+            "retry_backoff": cd.get("_retry_backoff_coefficient", 2.0),
+            "retry_max_interval": cd.get("_retry_max_interval", 60),
+            "stc_timeout": cd.get("_start_to_close_timeout", 300),
+            "stsc_timeout": cd.get("_schedule_to_close_timeout"),
+        }
+
+    def _gen_retry(self, eh: Dict[str, Any]) -> str:
+        """Generate RetryPolicy(...) code."""
+        parts = [f"maximum_attempts={eh['retry_max_attempts']}"]
+        if eh["retry_initial_interval"] != 1:
+            parts.append(
+                f"initial_interval=timedelta(seconds={eh['retry_initial_interval']})"
+            )
+        if eh["retry_backoff"] != 2.0:
+            parts.append(f"backoff_coefficient={eh['retry_backoff']}")
+        if eh["retry_max_interval"] != 60:
+            parts.append(
+                f"maximum_interval=timedelta(seconds={eh['retry_max_interval']})"
+            )
+        return f"RetryPolicy({', '.join(parts)})"
+
+    def _gen_timeouts(self, eh: Dict[str, Any]) -> str:
+        """Generate timeout keyword arguments."""
+        args = [f"start_to_close_timeout=timedelta(seconds={eh['stc_timeout']})"]
+        if eh["stsc_timeout"]:
+            args.append(
+                f"schedule_to_close_timeout=timedelta(seconds={eh['stsc_timeout']})"
+            )
+        return ",\n    ".join(args)
+
+    def _strip_eh_keys(self, config: str) -> str:
+        """Return JSON config string with error-handling keys removed."""
+        try:
+            cd = json.loads(config) if isinstance(config, str) else config
+            return json.dumps({k: v for k, v in cd.items() if not k.startswith("_")})
+        except (json.JSONDecodeError, TypeError):
+            return config
+
     def _generate_step(
         self, node: Dict, step_idx: int, activity_operations: Dict[int, Dict[str, str]]
     ) -> str:
@@ -163,95 +210,93 @@ class {workflow_name}:
         kind = node["kind"]
         label = node["label"]
         config = node.get("config", "{}")
+        eh = self._parse_error_handling(config)
 
         if kind == "activity_operation":
-            # Get operation details
             op_id = node.get("activity_operation_id")
             if not op_id or op_id not in activity_operations:
                 return f'# TODO: Unknown activity operation {op_id}'
 
-            op_info = activity_operations[op_id]
-            activity_name = op_info["code_symbol"]
+            activity_name = activity_operations[op_id]["code_symbol"]
+            clean = self._strip_eh_keys(config)
+            rp = self._gen_retry(eh)
+            to = self._gen_timeouts(eh)
 
-            # Parse config
-            try:
-                config_dict = json.loads(config) if isinstance(config, str) else config
-                config_str = json.dumps(config_dict)
-            except (json.JSONDecodeError, TypeError):
-                config_str = "{}"
-
-            step_code = f'''# Step {step_idx + 1}: {label}
+            return f'''# Step {step_idx + 1}: {label}
 step_{step_idx}_result = await workflow.execute_activity(
     "{activity_name}",
-    args=[{config_str}],
-    start_to_close_timeout=timedelta(seconds=300),
-    retry_policy=RetryPolicy(maximum_attempts=3),
+    args=[{clean}],
+    {to},
+    retry_policy={rp},
 )
 results["step_{step_idx}"] = step_{step_idx}_result
 workflow.logger.info(f"Completed step {step_idx + 1}: {label}")
 '''
-            return step_code
 
         elif kind == "primitive":
             primitive_type = node.get("primitive_type", "unknown")
+            rp = self._gen_retry(eh)
+            to = self._gen_timeouts(eh)
 
             if primitive_type == "http_request":
-                step_code = f'''# Step {step_idx + 1}: {label} (HTTP Request)
+                clean = self._strip_eh_keys(config)
+                return f'''# Step {step_idx + 1}: {label} (HTTP Request)
 step_{step_idx}_result = await workflow.execute_activity(
     "net.http.request",
-    args=[{config}],
-    start_to_close_timeout=timedelta(seconds=300),
+    args=[{clean}],
+    {to},
+    retry_policy={rp},
 )
 results["step_{step_idx}"] = step_{step_idx}_result
 '''
-                return step_code
 
             elif primitive_type == "delay":
                 try:
-                    config_dict = json.loads(config) if isinstance(config, str) else config
-                    seconds = config_dict.get("seconds", 60)
+                    cd = json.loads(config) if isinstance(config, str) else config
+                    seconds = cd.get("seconds", 60)
                 except (json.JSONDecodeError, TypeError):
                     seconds = 60
 
-                step_code = f'''# Step {step_idx + 1}: {label} (Delay)
+                return f'''# Step {step_idx + 1}: {label} (Delay)
 workflow.logger.info("Sleeping for {seconds} seconds")
 await workflow.sleep({seconds})
 results["step_{step_idx}"] = {{"status": "slept", "seconds": {seconds}}}
 '''
-                return step_code
 
             elif primitive_type == "browse":
-                step_code = f'''# Step {step_idx + 1}: {label} (Browse)
+                clean = self._strip_eh_keys(config)
+                return f'''# Step {step_idx + 1}: {label} (Browse)
 step_{step_idx}_result = await workflow.execute_activity(
     "browse_page",
-    args=[{config}],
-    start_to_close_timeout=timedelta(seconds=600),
+    args=[{clean}],
+    {to},
+    retry_policy={rp},
 )
 results["step_{step_idx}"] = step_{step_idx}_result
 workflow.logger.info(f"Completed browse step: {label}")
 '''
-                return step_code
 
             elif primitive_type == "log":
                 try:
-                    config_dict = json.loads(config) if isinstance(config, str) else config
-                    message = config_dict.get("message", "Log step executed")
-                    level = config_dict.get("level", "info")
+                    cd = json.loads(config) if isinstance(config, str) else config
+                    message = cd.get("message", "Log step executed")
+                    level = cd.get("level", "info")
                 except (json.JSONDecodeError, TypeError):
                     message = "Log step executed"
                     level = "info"
 
-                # Escape newlines and quotes for safe string embedding
-                safe_message = message.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+                safe_msg = (
+                    message.replace("\\", "\\\\")
+                    .replace('"', '\\"')
+                    .replace("\n", "\\n")
+                )
 
-                step_code = f'''# Step {step_idx + 1}: {label} (Log)
-workflow.logger.{level}("{safe_message}")
-results["step_{step_idx}"] = {{"logged": True, "message": "{safe_message}"}}
+                return f'''# Step {step_idx + 1}: {label} (Log)
+workflow.logger.{level}("{safe_msg}")
+results["step_{step_idx}"] = {{"logged": True, "message": "{safe_msg}"}}
 '''
-                return step_code
 
         elif kind == "logic":
-            # TODO: Handle conditional logic
             return f'# TODO: Logic node - {label}'
 
         return f'# TODO: Unknown node kind - {kind}'

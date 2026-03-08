@@ -199,10 +199,21 @@ async def get_run_status(
 
                 if et == EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED:
                     attrs = event.activity_task_scheduled_event_attributes
+                    input_data = None
+                    try:
+                        import json as _json
+                        if attrs.input and attrs.input.payloads:
+                            input_data = _json.loads(attrs.input.payloads[0].data)
+                    except Exception:
+                        pass
                     activity_scheduled[event.event_id] = {
                         "activity_name": attrs.activity_type.name,
                         "scheduled_at": event.event_time.ToDatetime().isoformat() if event.event_time else None,
                         "scheduled_event_id": event.event_id,
+                        "attempt": 1,
+                        "input": input_data,
+                        "output": None,
+                        "retry_state": None,
                     }
 
                 elif et == EventType.EVENT_TYPE_ACTIVITY_TASK_STARTED:
@@ -212,6 +223,7 @@ async def get_run_status(
                         activity_scheduled[sched_id]["started_at"] = (
                             event.event_time.ToDatetime().isoformat() if event.event_time else None
                         )
+                        activity_scheduled[sched_id]["attempt"] = attrs.attempt
 
                 elif et == EventType.EVENT_TYPE_ACTIVITY_TASK_COMPLETED:
                     attrs = event.activity_task_completed_event_attributes
@@ -220,6 +232,14 @@ async def get_run_status(
                         info = activity_scheduled[sched_id]
                         info["status"] = "completed"
                         info["ended_at"] = event.event_time.ToDatetime().isoformat() if event.event_time else None
+                        output_data = None
+                        try:
+                            import json as _json
+                            if attrs.result and attrs.result.payloads:
+                                output_data = _json.loads(attrs.result.payloads[0].data)
+                        except Exception:
+                            pass
+                        info["output"] = output_data
                         activity_history.append(info)
 
                 elif et == EventType.EVENT_TYPE_ACTIVITY_TASK_FAILED:
@@ -230,6 +250,9 @@ async def get_run_status(
                         info["status"] = "failed"
                         info["ended_at"] = event.event_time.ToDatetime().isoformat() if event.event_time else None
                         info["error"] = str(attrs.failure.message) if attrs.failure else None
+                        info["error_type"] = str(attrs.failure.failure_info) if attrs.failure and attrs.failure.failure_info else None
+                        info["retry_state"] = str(attrs.retry_state) if attrs.retry_state else None
+                        info["stack_trace"] = str(attrs.failure.stack_trace) if attrs.failure and attrs.failure.stack_trace else None
                         activity_history.append(info)
 
                 elif et == EventType.EVENT_TYPE_ACTIVITY_TASK_TIMED_OUT:
@@ -239,6 +262,7 @@ async def get_run_status(
                         info = activity_scheduled[sched_id]
                         info["status"] = "timed_out"
                         info["ended_at"] = event.event_time.ToDatetime().isoformat() if event.event_time else None
+                        info["retry_state"] = str(attrs.retry_state) if attrs.retry_state else None
                         activity_history.append(info)
 
             # Add still-running activities (scheduled but not completed/failed)

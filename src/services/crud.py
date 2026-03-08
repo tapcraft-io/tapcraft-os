@@ -16,6 +16,9 @@ from src.db.models import (
     Edge,
     Schedule,
     Run,
+    Webhook,
+    OAuthProvider,
+    OAuthCredential,
 )
 
 
@@ -684,3 +687,263 @@ async def update_run(
     await db.commit()
     await db.refresh(run)
     return run
+
+
+# ============================================================================
+# Webhook CRUD
+# ============================================================================
+
+
+async def create_webhook(
+    db: AsyncSession,
+    workspace_id: int,
+    workflow_id: int,
+    path: str,
+    secret: Optional[str] = None,
+    enabled: bool = True,
+) -> Webhook:
+    """Create a new webhook."""
+    webhook = Webhook(
+        workspace_id=workspace_id,
+        workflow_id=workflow_id,
+        path=path,
+        secret=secret,
+        enabled=enabled,
+    )
+    db.add(webhook)
+    await db.commit()
+    await db.refresh(webhook)
+    return webhook
+
+
+async def get_webhook(db: AsyncSession, webhook_id: int) -> Optional[Webhook]:
+    """Get a webhook by ID."""
+    result = await db.execute(select(Webhook).where(Webhook.id == webhook_id))
+    return result.scalars().first()
+
+
+async def get_webhook_by_path(db: AsyncSession, path: str) -> Optional[Webhook]:
+    """Get a webhook by its path."""
+    result = await db.execute(select(Webhook).where(Webhook.path == path))
+    return result.scalars().first()
+
+
+async def list_webhooks(
+    db: AsyncSession, workspace_id: int, workflow_id: Optional[int] = None
+) -> List[Webhook]:
+    """List all webhooks, optionally filtered by workflow."""
+    query = select(Webhook).where(Webhook.workspace_id == workspace_id)
+    if workflow_id:
+        query = query.where(Webhook.workflow_id == workflow_id)
+    result = await db.execute(query.order_by(Webhook.created_at.desc()))
+    return list(result.scalars().all())
+
+
+async def update_webhook(
+    db: AsyncSession,
+    webhook_id: int,
+    path: Optional[str] = None,
+    secret: Optional[str] = None,
+    enabled: Optional[bool] = None,
+) -> Optional[Webhook]:
+    """Update a webhook."""
+    webhook = await get_webhook(db, webhook_id)
+    if not webhook:
+        return None
+
+    if path is not None:
+        webhook.path = path
+    if secret is not None:
+        webhook.secret = secret
+    if enabled is not None:
+        webhook.enabled = enabled
+
+    await db.commit()
+    await db.refresh(webhook)
+    return webhook
+
+
+async def delete_webhook(db: AsyncSession, webhook_id: int) -> bool:
+    """Delete a webhook."""
+    webhook = await get_webhook(db, webhook_id)
+    if not webhook:
+        return False
+
+    await db.delete(webhook)
+    await db.commit()
+    return True
+
+
+async def increment_webhook_trigger(db: AsyncSession, webhook_id: int) -> None:
+    """Increment webhook trigger count and update last_triggered_at."""
+    webhook = await get_webhook(db, webhook_id)
+    if webhook:
+        from datetime import datetime
+
+        webhook.trigger_count += 1
+        webhook.last_triggered_at = datetime.utcnow()
+        await db.commit()
+
+
+# ============================================================================
+# OAuth Provider CRUD
+# ============================================================================
+
+
+async def create_oauth_provider(
+    db: AsyncSession,
+    workspace_id: int,
+    name: str,
+    slug: str,
+    client_id: str,
+    encrypted_client_secret: str,
+    auth_url: str,
+    token_url: str,
+    scopes: str = "",
+    redirect_uri: Optional[str] = None,
+) -> OAuthProvider:
+    """Create a new OAuth provider."""
+    provider = OAuthProvider(
+        workspace_id=workspace_id,
+        name=name,
+        slug=slug,
+        client_id=client_id,
+        encrypted_client_secret=encrypted_client_secret,
+        auth_url=auth_url,
+        token_url=token_url,
+        scopes=scopes,
+        redirect_uri=redirect_uri,
+    )
+    db.add(provider)
+    await db.commit()
+    await db.refresh(provider)
+    return provider
+
+
+async def get_oauth_provider(
+    db: AsyncSession, provider_id: int, load_credentials: bool = False
+) -> Optional[OAuthProvider]:
+    """Get an OAuth provider by ID."""
+    query = select(OAuthProvider).where(OAuthProvider.id == provider_id)
+    if load_credentials:
+        query = query.options(selectinload(OAuthProvider.credentials))
+    result = await db.execute(query)
+    return result.scalars().first()
+
+
+async def list_oauth_providers(
+    db: AsyncSession, workspace_id: int
+) -> List[OAuthProvider]:
+    """List all OAuth providers in a workspace."""
+    result = await db.execute(
+        select(OAuthProvider)
+        .where(OAuthProvider.workspace_id == workspace_id)
+        .options(selectinload(OAuthProvider.credentials))
+    )
+    return list(result.scalars().all())
+
+
+async def update_oauth_provider(
+    db: AsyncSession,
+    provider_id: int,
+    name: Optional[str] = None,
+    client_id: Optional[str] = None,
+    encrypted_client_secret: Optional[str] = None,
+    scopes: Optional[str] = None,
+    redirect_uri: Optional[str] = None,
+) -> Optional[OAuthProvider]:
+    """Update an OAuth provider."""
+    provider = await get_oauth_provider(db, provider_id)
+    if not provider:
+        return None
+
+    if name is not None:
+        provider.name = name
+    if client_id is not None:
+        provider.client_id = client_id
+    if encrypted_client_secret is not None:
+        provider.encrypted_client_secret = encrypted_client_secret
+    if scopes is not None:
+        provider.scopes = scopes
+    if redirect_uri is not None:
+        provider.redirect_uri = redirect_uri
+
+    await db.commit()
+    await db.refresh(provider)
+    return provider
+
+
+async def delete_oauth_provider(db: AsyncSession, provider_id: int) -> bool:
+    """Delete an OAuth provider and its credentials."""
+    provider = await get_oauth_provider(db, provider_id)
+    if not provider:
+        return False
+
+    await db.delete(provider)
+    await db.commit()
+    return True
+
+
+# ============================================================================
+# OAuth Credential CRUD
+# ============================================================================
+
+
+async def create_oauth_credential(
+    db: AsyncSession,
+    workspace_id: int,
+    provider_id: int,
+    name: str,
+    encrypted_access_token: str,
+    encrypted_refresh_token: Optional[str] = None,
+    token_type: str = "Bearer",
+    expires_at: Optional[object] = None,
+    scopes: str = "",
+) -> OAuthCredential:
+    """Create a new OAuth credential."""
+    credential = OAuthCredential(
+        workspace_id=workspace_id,
+        provider_id=provider_id,
+        name=name,
+        encrypted_access_token=encrypted_access_token,
+        encrypted_refresh_token=encrypted_refresh_token,
+        token_type=token_type,
+        expires_at=expires_at,
+        scopes=scopes,
+    )
+    db.add(credential)
+    await db.commit()
+    await db.refresh(credential)
+    return credential
+
+
+async def get_oauth_credential(
+    db: AsyncSession, credential_id: int
+) -> Optional[OAuthCredential]:
+    """Get an OAuth credential by ID."""
+    result = await db.execute(
+        select(OAuthCredential).where(OAuthCredential.id == credential_id)
+    )
+    return result.scalars().first()
+
+
+async def list_oauth_credentials(
+    db: AsyncSession, workspace_id: int, provider_id: Optional[int] = None
+) -> List[OAuthCredential]:
+    """List all OAuth credentials in a workspace."""
+    query = select(OAuthCredential).where(OAuthCredential.workspace_id == workspace_id)
+    if provider_id:
+        query = query.where(OAuthCredential.provider_id == provider_id)
+    result = await db.execute(query)
+    return list(result.scalars().all())
+
+
+async def delete_oauth_credential(db: AsyncSession, credential_id: int) -> bool:
+    """Delete an OAuth credential."""
+    credential = await get_oauth_credential(db, credential_id)
+    if not credential:
+        return False
+
+    await db.delete(credential)
+    await db.commit()
+    return True

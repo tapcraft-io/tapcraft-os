@@ -402,7 +402,7 @@
     .features-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: auto auto;
+      grid-template-rows: auto;
       gap: 16px;
       margin-top: 56px;
     }
@@ -470,6 +470,44 @@
       transition: opacity 0.3s;
     }
     .feature-card:hover .feature-mini-graph { opacity: 0.4; }
+
+    /* ─── SCREENSHOTS ─── */
+    .screenshots-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 56px;
+    }
+    .screenshot-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: border-color 0.3s, transform 0.2s;
+    }
+    .screenshot-card:hover {
+      border-color: var(--border-light);
+      transform: translateY(-2px);
+    }
+    .screenshot-card.wide {
+      grid-column: span 2;
+    }
+    .screenshot-card img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .screenshot-card .screenshot-label {
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      border-top: 1px solid var(--border);
+    }
+    @media (max-width: 960px) {
+      .screenshots-grid { grid-template-columns: 1fr; }
+      .screenshot-card.wide { grid-column: span 1; }
+    }
 
     /* ─── ARCHITECTURE ─── */
     #architecture { background: var(--surface); }
@@ -754,6 +792,7 @@
     </button>
     <ul class="nav-links">
       <li><a href="#features">Features</a></li>
+      <li><a href="#screenshots">Screenshots</a></li>
       <li><a href="#architecture">Architecture</a></li>
       <li><a href="#getting-started">Get Started</a></li>
       <li><a href="docs.html">Docs</a></li>
@@ -949,6 +988,109 @@
         </div>
         <h3>Secrets Management</h3>
         <p>Store API keys and credentials encrypted at rest with Fernet. Activities access secrets securely at runtime.</p>
+      </div>
+
+      <!-- Webhook Triggers -->
+      <div class="feature-card reveal" style="transition-delay: 0.4s">
+        <div class="feature-glow"></div>
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/><path d="M2 8c0-3.31 2.69-6 6-6"/><path d="M22 8c0-3.31-2.69-6-6-6"/></svg>
+        </div>
+        <h3>Webhook Triggers</h3>
+        <p>Expose HTTP endpoints that trigger workflows automatically. HMAC signature verification keeps every incoming call secure.</p>
+      </div>
+
+      <!-- Execution Inspector -->
+      <div class="feature-card reveal" style="transition-delay: 0.45s">
+        <div class="feature-glow"></div>
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </div>
+        <h3>Execution Inspector</h3>
+        <p>Drill into each run to see per-activity timing, input/output payloads, retry attempts, and error stack traces.</p>
+      </div>
+
+      <!-- Configurable Error Handling -->
+      <div class="feature-card reveal" style="transition-delay: 0.5s">
+        <div class="feature-glow"></div>
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <h3>Configurable Error Handling</h3>
+        <p>Set per-node retry policies (max attempts, backoff coefficient, intervals) and activity timeouts directly in the graph editor.</p>
+      </div>
+
+      <!-- OAuth Credential Manager -->
+      <div class="feature-card reveal" style="transition-delay: 0.55s">
+        <div class="feature-glow"></div>
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+        </div>
+        <h3>OAuth Credential Manager</h3>
+        <p>Register OAuth providers, run authorization code flows, store encrypted tokens, and refresh them on demand.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── SCREENSHOTS ─── -->
+<section id="screenshots" style="background: var(--surface);">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">Screenshots</div>
+      <h2 class="section-title">See it in action</h2>
+      <p class="section-desc">A quick tour of the Tapcraft UI — from the dashboard to run inspection, webhooks, OAuth management, and more.</p>
+    </div>
+
+    <div class="screenshots-grid">
+      <div class="screenshot-card wide reveal" style="transition-delay: 0.1s">
+        <img src="screenshots/dashboard.png" alt="Tapcraft dashboard showing workflows and recent runs" loading="lazy">
+        <div class="screenshot-label">Dashboard</div>
+      </div>
+
+      <div class="screenshot-card reveal" style="transition-delay: 0.15s">
+        <img src="screenshots/code-preview.png" alt="Generated Temporal workflow code preview" loading="lazy">
+        <div class="screenshot-label">Code Preview</div>
+      </div>
+
+      <div class="screenshot-card reveal" style="transition-delay: 0.2s">
+        <img src="screenshots/execution-inspector.png" alt="Execution inspector with per-activity timing and payloads" loading="lazy">
+        <div class="screenshot-label">Execution Inspector</div>
+      </div>
+
+      <div class="screenshot-card reveal" style="transition-delay: 0.25s">
+        <img src="screenshots/run-detail-success.png" alt="Successful run detail view" loading="lazy">
+        <div class="screenshot-label">Run Detail — Success</div>
+      </div>
+
+      <div class="screenshot-card reveal" style="transition-delay: 0.3s">
+        <img src="screenshots/run-detail-failed.png" alt="Failed run detail with error stack trace" loading="lazy">
+        <div class="screenshot-label">Run Detail — Failed</div>
+      </div>
+
+      <div class="screenshot-card reveal" style="transition-delay: 0.35s">
+        <img src="screenshots/error-handling.png" alt="Per-node retry policies and timeout configuration" loading="lazy">
+        <div class="screenshot-label">Error Handling Config</div>
+      </div>
+
+      <div class="screenshot-card reveal" style="transition-delay: 0.4s">
+        <img src="screenshots/webhooks-list.png" alt="Webhook triggers list with endpoints" loading="lazy">
+        <div class="screenshot-label">Webhooks — List</div>
+      </div>
+
+      <div class="screenshot-card reveal" style="transition-delay: 0.45s">
+        <img src="screenshots/webhooks-create.png" alt="Create a new webhook trigger form" loading="lazy">
+        <div class="screenshot-label">Webhooks — Create</div>
+      </div>
+
+      <div class="screenshot-card reveal" style="transition-delay: 0.5s">
+        <img src="screenshots/oauth-add-provider.png" alt="Register an OAuth provider" loading="lazy">
+        <div class="screenshot-label">OAuth — Add Provider</div>
+      </div>
+
+      <div class="screenshot-card reveal" style="transition-delay: 0.55s">
+        <img src="screenshots/oauth-empty.png" alt="OAuth credential manager empty state" loading="lazy">
+        <div class="screenshot-label">OAuth — Manager</div>
       </div>
     </div>
   </div>

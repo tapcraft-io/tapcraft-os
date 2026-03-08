@@ -6,7 +6,9 @@ const navItems = [
   { to: '/activities', label: 'Activities', icon: 'apps' },
   { to: '/workflows', label: 'Workflows', icon: 'account_tree' },
   { to: '/runs', label: 'Runs', icon: 'history' },
+  { to: '/webhooks', label: 'Webhooks', icon: 'webhook' },
   { to: '/secrets', label: 'Secrets', icon: 'key' },
+  { to: '/oauth', label: 'OAuth', icon: 'link' },
 ];
 
 const AppShell = () => {

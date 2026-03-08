@@ -12,6 +12,11 @@ schedule runs, and monitor execution — all from a clean web UI.
 - **Git-backed workspaces** – point a workspace at a git repo; Tapcraft clones it and auto-discovers your activities and workflows
 - **Schedules** – trigger workflows on a cron schedule with timezone support
 - **Secrets management** – store encrypted credentials used by activities at runtime
+- **Webhook triggers** – expose HTTP endpoints that trigger workflow execution, with optional HMAC signature verification
+- **Execution inspector** – drill into each run to see per-activity timing, input/output payloads, retries, and error details
+- **Configurable error handling** – set per-node retry policies (max attempts, backoff, intervals) and timeouts directly in the graph editor
+- **OAuth credential manager** – register OAuth providers, run authorization flows, store encrypted tokens, and refresh them on demand
+- **Code preview** – view the generated Temporal Python code for any workflow directly in the editor
 
 ## Getting Started
 
@@ -103,6 +108,20 @@ reference it in `repo_auth_secret`. Tapcraft will shallow-clone (or pull) the re
 auto-discover `@activity.defn` functions and `@workflow.defn` classes from the
 `activities/` and `workflows/` directories.
 
+## Screenshots
+
+| Dashboard | Execution Inspector |
+|---|---|
+| ![Dashboard](site/screenshots/dashboard.png) | ![Execution Inspector](site/screenshots/execution-inspector.png) |
+
+| Workflow Editor + Code Preview | Error Handling Config |
+|---|---|
+| ![Code Preview](site/screenshots/code-preview.png) | ![Error Handling](site/screenshots/error-handling.png) |
+
+| Webhooks | OAuth Providers |
+|---|---|
+| ![Webhooks](site/screenshots/webhooks-list.png) | ![OAuth](site/screenshots/oauth-add-provider.png) |
+
 ## Project Layout
 
 ```
@@ -117,6 +136,7 @@ src/
   worker/      # Temporal worker entrypoint
   workflows/   # Built-in Temporal workflow definitions
 ui/            # React frontend (Vite + Tailwind)
+site/          # Static landing page and docs
 ```
 
 ## Environment Variables

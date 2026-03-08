@@ -143,6 +143,12 @@ export interface ActivityHistoryEntry {
   started_at?: string | null;
   ended_at?: string | null;
   error?: string | null;
+  error_type?: string | null;
+  stack_trace?: string | null;
+  attempt?: number;
+  input?: unknown;
+  output?: unknown;
+  retry_state?: string | null;
 }
 
 export interface RunStatusResponse {
@@ -158,6 +164,49 @@ export interface RunStatusResponse {
   temporal_workflow_id?: string | null;
   input_config?: string;
   activity_history?: ActivityHistoryEntry[];
+}
+
+// Webhook types
+export interface Webhook {
+  id: number;
+  workspace_id: number;
+  workflow_id: number;
+  path: string;
+  secret: string | null;
+  enabled: boolean;
+  last_triggered_at: string | null;
+  trigger_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// OAuth types
+
+export interface OAuthProvider {
+  id: number;
+  workspace_id: number;
+  name: string;
+  slug: string;
+  client_id: string;
+  auth_url: string;
+  token_url: string;
+  scopes: string;
+  redirect_uri: string | null;
+  credential_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OAuthCredential {
+  id: number;
+  workspace_id: number;
+  provider_id: number;
+  name: string;
+  token_type: string;
+  expires_at: string | null;
+  scopes: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // Graph visualization types

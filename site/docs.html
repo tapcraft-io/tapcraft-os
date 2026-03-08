@@ -313,6 +313,8 @@
       <li><a href="#workflows">Workflows</a></li>
       <li><a href="#schedules">Schedules</a></li>
       <li><a href="#secrets">Secrets</a></li>
+      <li><a href="#webhooks">Webhooks</a></li>
+      <li><a href="#oauth">OAuth Credentials</a></li>
     </ul>
   </div>
   <div class="sidebar-section">
@@ -320,6 +322,8 @@
     <ul>
       <li><a href="#writing-activities">Writing Activities</a></li>
       <li><a href="#writing-workflows">Writing Workflows</a></li>
+      <li><a href="#error-handling">Error Handling</a></li>
+      <li><a href="#execution-inspector">Execution Inspector</a></li>
       <li><a href="#git-sync">Git Repo Sync</a></li>
     </ul>
   </div>
@@ -343,6 +347,8 @@
       <li><a href="#api-runs">Runs</a></li>
       <li><a href="#api-schedules">Schedules</a></li>
       <li><a href="#api-secrets">Secrets</a></li>
+      <li><a href="#api-webhooks">Webhooks</a></li>
+      <li><a href="#api-oauth">OAuth</a></li>
     </ul>
   </div>
   <div class="sidebar-section">
@@ -510,6 +516,61 @@
 </div>
 
 <!-- ════════════════════════════════════════ -->
+<h2 id="webhooks">Webhooks</h2>
+
+<p><strong>Webhooks</strong> let external services trigger workflow executions via HTTP. Each webhook exposes a unique inbound URL that accepts POST requests without authentication, making it easy to wire up GitHub, Stripe, Slack, or any system that supports outgoing webhooks.</p>
+
+<h3>How it works</h3>
+<ol>
+  <li>Create a webhook via the API or MCP, specifying which workflow to trigger and an optional secret for HMAC verification.</li>
+  <li>The webhook is assigned a unique <code>path</code>. The inbound URL is <code>POST /hooks/{path}</code>.</li>
+  <li>When the inbound URL receives a request, Tapcraft verifies the signature (if configured), then starts the linked workflow with the request body as input.</li>
+</ol>
+
+<h3>HMAC Verification</h3>
+<p>If a webhook has a <code>secret</code>, incoming requests must include an <code>X-Webhook-Signature</code> header. Tapcraft computes an HMAC-SHA256 digest of the raw request body using the webhook's secret and compares it to the header value. Requests with missing or invalid signatures are rejected with <code>401</code>.</p>
+
+<div class="codeblock">
+  <div class="codeblock-bar"><div class="codeblock-dot r"></div><div class="codeblock-dot y"></div><div class="codeblock-dot g"></div><span class="codeblock-title">terminal</span></div>
+  <pre><span class="cm"># Sending a signed webhook request</span>
+<span class="prompt">$</span> <span class="cmd">BODY</span>=<span class="str">'{"event": "deploy", "ref": "main"}'</span>
+<span class="prompt">$</span> <span class="cmd">SIG</span>=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "your-webhook-secret" | cut -d' ' -f2)
+<span class="prompt">$</span> <span class="cmd">curl</span> <span class="flag">-X POST</span> http://localhost:8001/hooks/my-deploy-hook \
+  <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+  <span class="flag">-H</span> <span class="str">"X-Webhook-Signature: $SIG"</span> \
+  <span class="flag">-d</span> <span class="str">"$BODY"</span></pre>
+</div>
+
+<h3>MCP Tools</h3>
+<table class="docs-table">
+  <tr><th>Tool</th><th>Description</th></tr>
+  <tr><td><code>tapcraft_list_webhooks</code></td><td>List all webhooks with their paths and linked workflows</td></tr>
+  <tr><td><code>tapcraft_create_webhook</code></td><td>Create a new webhook for a workflow</td></tr>
+  <tr><td><code>tapcraft_delete_webhook</code></td><td>Delete a webhook by ID</td></tr>
+</table>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="oauth">OAuth Credential Manager</h2>
+
+<p>The <strong>OAuth Credential Manager</strong> provides full OAuth 2.0 provider and credential management. Register OAuth providers (Google, GitHub, Slack, etc.), run the authorization flow, and store access/refresh tokens — all encrypted at rest with <a href="https://cryptography.io/en/latest/fernet/" target="_blank" rel="noopener">Fernet symmetric encryption</a>.</p>
+
+<h3>How it works</h3>
+<ol>
+  <li><strong>Register a provider</strong> — store the client ID, client secret, authorization URL, token URL, and scopes.</li>
+  <li><strong>Authorize</strong> — call the authorize endpoint to get a redirect URL. The user completes the OAuth flow in their browser.</li>
+  <li><strong>Callback</strong> — exchange the authorization code for access and refresh tokens, which are stored encrypted.</li>
+  <li><strong>Use in activities</strong> — activities retrieve the credential at runtime and use the access token for API calls.</li>
+  <li><strong>Refresh</strong> — when tokens expire, call the refresh endpoint to get new ones.</li>
+</ol>
+
+<h3>Security</h3>
+<ul>
+  <li>All client secrets and tokens are encrypted at rest using the <code>TAPCRAFT_SECRET_KEY</code> Fernet key.</li>
+  <li>Access tokens and refresh tokens are never exposed in plaintext via the API — only metadata is returned in list responses.</li>
+  <li>Provider secrets are encrypted on creation and decrypted only when needed for token exchange.</li>
+</ul>
+
+<!-- ════════════════════════════════════════ -->
 <h2 id="writing-activities">Writing Activities</h2>
 
 <p>An activity is an <code>async</code> function decorated with <code>@activity.defn</code>. It receives a single <code>dict</code> argument and returns a <code>dict</code>.</p>
@@ -616,6 +677,99 @@
 <p>Workflows are discovered from the same paths as activities, but in <code>workflows/</code> directories. The worker watches for new files every 5 seconds.</p>
 
 <!-- ════════════════════════════════════════ -->
+<h2 id="error-handling">Error Handling</h2>
+
+<p>Every activity node in a workflow graph supports configurable <strong>retry policies</strong> and <strong>timeouts</strong>. These are set as underscore-prefixed keys in the node's config and are translated to Temporal <code>RetryPolicy</code> and timeout arguments in the generated Python code.</p>
+
+<h3>Configuration Keys</h3>
+<table class="docs-table">
+  <tr><th>Key</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>_retry_max_attempts</code></td><td>int</td><td>Maximum number of retry attempts (including the initial run)</td></tr>
+  <tr><td><code>_retry_initial_interval</code></td><td>int (seconds)</td><td>Delay before the first retry</td></tr>
+  <tr><td><code>_retry_backoff_coefficient</code></td><td>float</td><td>Multiplier applied to the interval on each subsequent retry</td></tr>
+  <tr><td><code>_retry_max_interval</code></td><td>int (seconds)</td><td>Maximum delay between retries regardless of backoff</td></tr>
+  <tr><td><code>_start_to_close_timeout</code></td><td>int (seconds)</td><td>Max time for a single activity attempt</td></tr>
+  <tr><td><code>_schedule_to_close_timeout</code></td><td>int (seconds)</td><td>Max time from scheduling to completion (across all retries)</td></tr>
+</table>
+
+<h3>Supported Node Types</h3>
+<p>Error handling config is available on <code>activity_operation</code> nodes and primitive <code>http_request</code> / <code>browse</code> nodes.</p>
+
+<h3>Example</h3>
+<p>Setting retry and timeout config on a graph node:</p>
+
+<div class="codeblock">
+  <div class="codeblock-bar"><div class="codeblock-dot r"></div><div class="codeblock-dot y"></div><div class="codeblock-dot g"></div><span class="codeblock-title">node config (JSON)</span></div>
+  <pre>{
+  <span class="str">"url"</span>: <span class="str">"https://api.example.com/data"</span>,
+  <span class="str">"method"</span>: <span class="str">"GET"</span>,
+  <span class="str">"_retry_max_attempts"</span>: <span class="num">5</span>,
+  <span class="str">"_retry_initial_interval"</span>: <span class="num">2</span>,
+  <span class="str">"_retry_backoff_coefficient"</span>: <span class="num">2.0</span>,
+  <span class="str">"_retry_max_interval"</span>: <span class="num">60</span>,
+  <span class="str">"_start_to_close_timeout"</span>: <span class="num">120</span>
+}</pre>
+</div>
+
+<p>This generates a Temporal activity call with:</p>
+
+<div class="codeblock">
+  <div class="codeblock-bar"><div class="codeblock-dot r"></div><div class="codeblock-dot y"></div><div class="codeblock-dot g"></div><span class="codeblock-title">generated Python</span></div>
+  <pre>result = <span class="kw">await</span> workflow.execute_activity(
+    <span class="str">"http_request"</span>,
+    config,
+    start_to_close_timeout=timedelta(seconds=<span class="num">120</span>),
+    retry_policy=RetryPolicy(
+        maximum_attempts=<span class="num">5</span>,
+        initial_interval=timedelta(seconds=<span class="num">2</span>),
+        backoff_coefficient=<span class="num">2.0</span>,
+        maximum_interval=timedelta(seconds=<span class="num">60</span>),
+    ),
+)</pre>
+</div>
+
+<div class="callout callout-info">
+  <strong>Tip:</strong> If no error handling keys are set, the code generator uses Temporal defaults: 1 attempt with no retry, and a <code>start_to_close_timeout</code> of 60 seconds.
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="execution-inspector">Execution Inspector</h2>
+
+<p>The <strong>Execution Inspector</strong> provides detailed visibility into every activity that ran (or failed) during a workflow execution. It surfaces Temporal's full activity history through the API and renders it in the UI as expandable cards with timing breakdowns.</p>
+
+<h3>API</h3>
+<p>The run status endpoint returns an <code>activity_history</code> array alongside the existing run fields:</p>
+
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/execution/runs/{run_id}/status</span></div>
+
+<h4>Activity history fields</h4>
+<table class="docs-table">
+  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>activity_name</code></td><td>string</td><td>Name of the activity that was executed</td></tr>
+  <tr><td><code>status</code></td><td>string</td><td><code>scheduled</code>, <code>started</code>, <code>completed</code>, or <code>failed</code></td></tr>
+  <tr><td><code>scheduled_at</code></td><td>datetime</td><td>When Temporal scheduled the activity</td></tr>
+  <tr><td><code>started_at</code></td><td>datetime</td><td>When the worker picked up the activity</td></tr>
+  <tr><td><code>ended_at</code></td><td>datetime</td><td>When the activity completed or failed</td></tr>
+  <tr><td><code>attempt</code></td><td>int</td><td>Retry attempt number (1-based)</td></tr>
+  <tr><td><code>input</code></td><td>object</td><td>The config dict passed to the activity</td></tr>
+  <tr><td><code>output</code></td><td>object</td><td>The result dict returned by the activity (if successful)</td></tr>
+  <tr><td><code>error</code></td><td>string</td><td>Error message (if failed)</td></tr>
+  <tr><td><code>error_type</code></td><td>string</td><td>Exception class name (if failed)</td></tr>
+  <tr><td><code>stack_trace</code></td><td>string</td><td>Full Python stack trace (if failed)</td></tr>
+  <tr><td><code>retry_state</code></td><td>string</td><td>Temporal retry state, e.g. <code>RETRY_STATE_IN_PROGRESS</code></td></tr>
+</table>
+
+<h3>UI</h3>
+<p>The run detail page in the web UI renders each activity as an expandable card showing:</p>
+<ul>
+  <li><strong>Status badge</strong> — color-coded (green for completed, red for failed, yellow for in-progress)</li>
+  <li><strong>Timing breakdown</strong> — wait time (scheduled to started) and execution time (started to ended)</li>
+  <li><strong>Input / Output viewers</strong> — collapsible JSON viewers for the activity's config and result</li>
+  <li><strong>Error details</strong> — error message, exception type, and full stack trace for failed activities</li>
+  <li><strong>Retry info</strong> — attempt number and retry state</li>
+</ul>
+
+<!-- ════════════════════════════════════════ -->
 <h2 id="git-sync">Git Repo Sync</h2>
 
 <p>Each workspace can be linked to a git repository. When you sync, Tapcraft:</p>
@@ -714,6 +868,14 @@ workflows/
   <tr><td><code>tapcraft_list_schedules</code></td><td><code>workflow_id?: int</code></td><td>List cron schedules</td></tr>
   <tr><td><code>tapcraft_create_schedule</code></td><td><code>workflow_id, name, cron, timezone?, enabled?</code></td><td>Create a cron schedule</td></tr>
   <tr><td><code>tapcraft_sync_repo</code></td><td>&mdash;</td><td>Pull latest code and discover new items</td></tr>
+</table>
+
+<h3>Webhooks</h3>
+<table class="docs-table">
+  <tr><th>Tool</th><th>Parameters</th><th>Description</th></tr>
+  <tr><td><code>tapcraft_list_webhooks</code></td><td>&mdash;</td><td>List all webhooks with paths and linked workflows</td></tr>
+  <tr><td><code>tapcraft_create_webhook</code></td><td><code>workflow_id, path, secret?, description?</code></td><td>Create a webhook that triggers a workflow</td></tr>
+  <tr><td><code>tapcraft_delete_webhook</code></td><td><code>webhook_id: int</code></td><td>Delete a webhook by ID</td></tr>
 </table>
 
 <!-- ════════════════════════════════════════ -->
@@ -837,6 +999,52 @@ workflows/
 <div class="endpoint"><span class="method method-delete">DELETE</span><span class="path">/secrets/{name}</span></div>
 
 <p style="margin-top: 12px;"><code>POST /secrets</code> accepts <code>{name, value, category?}</code>. The value is encrypted before storage. <code>GET /secrets</code> returns metadata only — values are never exposed via the API.</p>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="api-webhooks">Webhooks API</h2>
+
+<h3>Management Endpoints</h3>
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/webhooks</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/webhooks</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/webhooks/{webhook_id}</span></div>
+<div class="endpoint"><span class="method method-patch">PATCH</span><span class="path">/webhooks/{webhook_id}</span></div>
+<div class="endpoint"><span class="method method-delete">DELETE</span><span class="path">/webhooks/{webhook_id}</span></div>
+
+<p style="margin-top: 12px;"><code>POST /webhooks</code> accepts <code>{workflow_id, path, secret?, description?}</code>. The <code>path</code> must be unique and becomes the inbound URL slug.</p>
+
+<h3>Inbound Endpoint</h3>
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/hooks/{path}</span></div>
+
+<div class="callout">
+  <strong>Public endpoint:</strong> <code>POST /hooks/{path}</code> does not require API key authentication. It is designed to be called by external services. If the webhook has a secret, the request must include a valid <code>X-Webhook-Signature</code> HMAC-SHA256 header.
+</div>
+
+<p>The request body is passed as the workflow's input config. On success, returns <code>{"run_id": ..., "temporal_workflow_id": ...}</code>.</p>
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="api-oauth">OAuth API</h2>
+
+<h3>Provider Management</h3>
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/oauth/providers</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/oauth/providers</span></div>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/oauth/providers/{provider_id}</span></div>
+<div class="endpoint"><span class="method method-patch">PATCH</span><span class="path">/oauth/providers/{provider_id}</span></div>
+<div class="endpoint"><span class="method method-delete">DELETE</span><span class="path">/oauth/providers/{provider_id}</span></div>
+
+<p style="margin-top: 12px;"><code>POST /oauth/providers</code> accepts <code>{name, client_id, client_secret, authorize_url, token_url, scopes?}</code>. The <code>client_secret</code> is encrypted at rest.</p>
+
+<h3>Authorization Flow</h3>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/oauth/providers/{provider_id}/authorize</span></div>
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/oauth/callback</span></div>
+
+<p style="margin-top: 12px;"><code>GET /oauth/providers/{id}/authorize</code> returns an authorization URL with the configured scopes. Redirect the user to this URL. After authorization, the provider redirects back to your callback URL. Call <code>POST /oauth/callback</code> with the authorization code to exchange it for tokens.</p>
+
+<h3>Credential Management</h3>
+<div class="endpoint"><span class="method method-get">GET</span><span class="path">/oauth/credentials</span></div>
+<div class="endpoint"><span class="method method-delete">DELETE</span><span class="path">/oauth/credentials/{credential_id}</span></div>
+<div class="endpoint"><span class="method method-post">POST</span><span class="path">/oauth/credentials/{credential_id}/refresh</span></div>
+
+<p style="margin-top: 12px;"><code>POST /oauth/credentials/{id}/refresh</code> uses the stored refresh token to obtain a new access token from the provider. All tokens are encrypted with Fernet symmetric encryption using <code>TAPCRAFT_SECRET_KEY</code>.</p>
 
 <!-- ════════════════════════════════════════ -->
 <h2 id="deployment">Deployment</h2>

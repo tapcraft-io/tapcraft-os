@@ -15,6 +15,9 @@ import type {
   ExecuteWorkflowRequest,
   ExecuteWorkflowResponse,
   RunStatusResponse,
+  Webhook,
+  OAuthProvider,
+  OAuthCredential,
 } from '../types/tapcraft';
 import { getStoredApiKey } from '../components/AuthGate';
 
@@ -322,6 +325,173 @@ export function useRegenerateCode() {
       }),
     onSuccess: (_data, workflowId) => {
       queryClient.invalidateQueries({ queryKey: ['workflows', workflowId, 'code'] });
+    },
+  });
+}
+
+// ============================================================================
+// Webhooks
+// ============================================================================
+
+export function useWebhooks(workspaceId: number, workflowId?: number) {
+  const params = new URLSearchParams({ workspace_id: workspaceId.toString() });
+  if (workflowId) params.append('workflow_id', workflowId.toString());
+
+  return useQuery({
+    queryKey: ['webhooks', workspaceId, workflowId],
+    queryFn: () => apiFetch<Webhook[]>(`/webhooks?${params.toString()}`),
+  });
+}
+
+export function useCreateWebhook() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { workflow_id: number; path: string; secret?: string; enabled?: boolean }) =>
+      apiFetch<Webhook>('/webhooks', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['webhooks'] });
+    },
+  });
+}
+
+export function useUpdateWebhook() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ webhookId, data }: { webhookId: number; data: { path?: string; secret?: string; enabled?: boolean } }) =>
+      apiFetch<Webhook>(`/webhooks/${webhookId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['webhooks'] });
+    },
+  });
+}
+
+export function useDeleteWebhook() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (webhookId: number) =>
+      apiFetch<void>(`/webhooks/${webhookId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['webhooks'] });
+    },
+  });
+}
+
+// ============================================================================
+// Run Actions
+// ============================================================================
+
+export function useRetryRun() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (runId: number) =>
+      apiFetch<Run>(`/runs/${runId}/retry`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['runs'] });
+    },
+  });
+}
+
+export function useCancelRun() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (runId: number) =>
+      apiFetch<{ cancelled: boolean }>(`/runs/${runId}/cancel`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['runs'] });
+    },
+  });
+}
+
+// ============================================================================
+// OAuth
+// ============================================================================
+
+export function useOAuthProviders(workspaceId: number) {
+  return useQuery({
+    queryKey: ['oauth-providers', workspaceId],
+    queryFn: () => apiFetch<OAuthProvider[]>(`/oauth/providers?workspace_id=${workspaceId}`),
+  });
+}
+
+export function useCreateOAuthProvider() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: {
+      name: string;
+      slug: string;
+      client_id: string;
+      client_secret: string;
+      auth_url: string;
+      token_url: string;
+      scopes?: string;
+      redirect_uri?: string;
+    }) =>
+      apiFetch<OAuthProvider>('/oauth/providers', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['oauth-providers'] });
+    },
+  });
+}
+
+export function useDeleteOAuthProvider() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (providerId: number) =>
+      apiFetch<void>(`/oauth/providers/${providerId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['oauth-providers'] });
+      queryClient.invalidateQueries({ queryKey: ['oauth-credentials'] });
+    },
+  });
+}
+
+export function useOAuthCredentials(workspaceId: number, providerId?: number) {
+  const params = new URLSearchParams({ workspace_id: workspaceId.toString() });
+  if (providerId) params.append('provider_id', providerId.toString());
+
+  return useQuery({
+    queryKey: ['oauth-credentials', workspaceId, providerId],
+    queryFn: () => apiFetch<OAuthCredential[]>(`/oauth/credentials?${params.toString()}`),
+  });
+}
+
+export function useDeleteOAuthCredential() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (credentialId: number) =>
+      apiFetch<void>(`/oauth/credentials/${credentialId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['oauth-credentials'] });
+      queryClient.invalidateQueries({ queryKey: ['oauth-providers'] });
+    },
+  });
+}
+
+export function useRefreshOAuthCredential() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (credentialId: number) =>
+      apiFetch<OAuthCredential>(`/oauth/credentials/${credentialId}/refresh`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['oauth-credentials'] });
     },
   });
 }
