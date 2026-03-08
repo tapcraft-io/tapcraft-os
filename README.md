@@ -141,6 +141,16 @@ poetry run ruff check .
 poetry run mypy src
 ```
 
+## Marketing Site
+
+The `site/` directory contains a static landing page. To preview locally:
+
+```bash
+cd site && python3 -m http.server 8765
+```
+
+Deploy to GitHub Pages by pointing it at the `site/` directory.
+
 ## License
 
 [MIT](LICENSE)
