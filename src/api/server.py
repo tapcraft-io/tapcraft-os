@@ -11,6 +11,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 
 # Import database initialization
 from src.db.base import init_db
+from src.config.defaults import WORKFLOW_EXECUTION_TIMEOUT, WORKFLOW_RUN_TIMEOUT
 
 # Import auth
 from src.api.auth import require_api_key, validate_key
@@ -20,6 +21,7 @@ from src.api.routers import (
     activities,
     workflows,
     graphs,
+    health,
     schedules,
     runs,
     execution,
@@ -37,6 +39,7 @@ app = FastAPI(title="Tapcraft OS API", version="0.1.0")
 app.include_router(activities.router, dependencies=[Depends(require_api_key)])
 app.include_router(workflows.router, dependencies=[Depends(require_api_key)])
 app.include_router(graphs.router, dependencies=[Depends(require_api_key)])
+app.include_router(health.router, dependencies=[Depends(require_api_key)])
 app.include_router(schedules.router, dependencies=[Depends(require_api_key)])
 app.include_router(runs.router, dependencies=[Depends(require_api_key)])
 app.include_router(execution.router, dependencies=[Depends(require_api_key)])
@@ -93,7 +96,7 @@ def get_config() -> RuntimeConfig:
 
 
 @app.get("/health")
-async def health() -> Dict[str, Any]:
+async def health_check() -> Dict[str, Any]:
     temporal_addr = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
     temporal_connected = False
     temporal_namespace = os.getenv("TEMPORAL_NAMESPACE", "default")
@@ -106,8 +109,21 @@ async def health() -> Dict[str, Any]:
     except Exception:
         pass
 
+    # Quick workflow health check (lightweight — just counts running workflows)
+    workflow_status = "unknown"
+    running_count = 0
+    if temporal_connected:
+        try:
+            from src.services.workflow_health import get_workflow_health
+
+            wf_health = await get_workflow_health()
+            workflow_status = wf_health["status"]
+            running_count = wf_health["running_count"]
+        except Exception:
+            workflow_status = "error"
+
     return {
-        "status": "ok",
+        "status": "ok" if temporal_connected else "degraded",
         "temporal": {
             "connected": temporal_connected,
             "namespace": temporal_namespace,
@@ -115,6 +131,14 @@ async def health() -> Dict[str, Any]:
         "worker": {
             "active": True,
             "heartbeat_interval": 10,
+        },
+        "workflows": {
+            "status": workflow_status,
+            "running_count": running_count,
+        },
+        "guardrails": {
+            "execution_timeout_hours": WORKFLOW_EXECUTION_TIMEOUT.total_seconds() / 3600,
+            "run_timeout_hours": WORKFLOW_RUN_TIMEOUT.total_seconds() / 3600,
         },
     }
 
@@ -207,6 +231,8 @@ async def webhook_inbound(path: str, request: Request) -> Dict[str, Any]:
                 input_config,
                 id=temporal_workflow_id,
                 task_queue=task_queue,
+                execution_timeout=WORKFLOW_EXECUTION_TIMEOUT,
+                run_timeout=WORKFLOW_RUN_TIMEOUT,
             )
 
             await crud.update_run(db=db, run_id=run.id, status="running")

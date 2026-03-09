@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.config.defaults import WORKFLOW_EXECUTION_TIMEOUT, WORKFLOW_RUN_TIMEOUT
 from src.db.base import get_db
 from src.models.schemas import (
     RunCreate,
@@ -209,6 +210,8 @@ async def retry_run(
             input_config,
             id=temporal_workflow_id,
             task_queue=task_queue,
+            execution_timeout=WORKFLOW_EXECUTION_TIMEOUT,
+            run_timeout=WORKFLOW_RUN_TIMEOUT,
         )
 
         await crud.update_run(db=db, run_id=new_run.id, status="running")

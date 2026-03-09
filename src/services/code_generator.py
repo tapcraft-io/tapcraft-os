@@ -3,6 +3,12 @@
 from typing import List, Dict, Any
 import json
 
+from src.config.defaults import (
+    DEFAULT_ACTIVITY_MAX_ATTEMPTS,
+    DEFAULT_ACTIVITY_TIMEOUT_SECONDS,
+    MAX_ACTIVITY_RETRY_ATTEMPTS,
+)
+
 
 class CodeGeneratorService:
     """Generates Temporal workflow Python code from graph structures."""
@@ -156,17 +162,25 @@ class {workflow_name}:
         return class_code
 
     def _parse_error_handling(self, config: str) -> Dict[str, Any]:
-        """Extract retry policy and timeout settings from node config."""
+        """Extract retry policy and timeout settings from node config.
+
+        Enforces platform guardrails: retry attempts are capped at
+        MAX_ACTIVITY_RETRY_ATTEMPTS to prevent infinite retry loops.
+        """
         try:
             cd = json.loads(config) if isinstance(config, str) else config
         except (json.JSONDecodeError, TypeError):
             cd = {}
+
+        raw_attempts = cd.get("_retry_max_attempts", DEFAULT_ACTIVITY_MAX_ATTEMPTS)
+        capped_attempts = min(int(raw_attempts), MAX_ACTIVITY_RETRY_ATTEMPTS)
+
         return {
-            "retry_max_attempts": cd.get("_retry_max_attempts", 3),
+            "retry_max_attempts": capped_attempts,
             "retry_initial_interval": cd.get("_retry_initial_interval", 1),
             "retry_backoff": cd.get("_retry_backoff_coefficient", 2.0),
             "retry_max_interval": cd.get("_retry_max_interval", 60),
-            "stc_timeout": cd.get("_start_to_close_timeout", 300),
+            "stc_timeout": cd.get("_start_to_close_timeout", DEFAULT_ACTIVITY_TIMEOUT_SECONDS),
             "stsc_timeout": cd.get("_schedule_to_close_timeout"),
         }
 

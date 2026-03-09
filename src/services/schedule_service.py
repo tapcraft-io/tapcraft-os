@@ -16,6 +16,8 @@ from temporalio.client import (
     ScheduleUpdateInput,
 )
 
+from src.config.defaults import WORKFLOW_EXECUTION_TIMEOUT, WORKFLOW_RUN_TIMEOUT
+
 LOGGER = logging.getLogger(__name__)
 
 TEMPORAL_ADDRESS = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
@@ -98,6 +100,8 @@ async def create_temporal_schedule(
             input_config or {},
             id=f"scheduled-{temporal_id}-{{{{.ScheduledTime}}}}",
             task_queue=TASK_QUEUE,
+            execution_timeout=WORKFLOW_EXECUTION_TIMEOUT,
+            run_timeout=WORKFLOW_RUN_TIMEOUT,
         ),
         spec=ScheduleSpec(cron_expressions=[cron]),
         state=ScheduleState(paused=not enabled),
@@ -134,6 +138,8 @@ async def update_temporal_schedule(
             input_config or {},
             id=f"scheduled-{temporal_id}-{{{{.ScheduledTime}}}}",
             task_queue=TASK_QUEUE,
+            execution_timeout=WORKFLOW_EXECUTION_TIMEOUT,
+            run_timeout=WORKFLOW_RUN_TIMEOUT,
         )
         existing.spec = ScheduleSpec(cron_expressions=[cron])
         existing.state = ScheduleState(paused=not enabled)

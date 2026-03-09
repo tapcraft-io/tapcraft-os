@@ -60,8 +60,47 @@ export function useHealth() {
       status: string;
       temporal?: { connected: boolean; namespace: string };
       worker?: { active: boolean; heartbeat_interval?: number };
+      workflows?: { status: string; running_count: number };
+      guardrails?: { execution_timeout_hours: number; run_timeout_hours: number };
     }>('/health'),
     refetchInterval: 10_000,
+  });
+}
+
+export function useWorkflowHealth() {
+  return useQuery({
+    queryKey: ['workflow-health'],
+    queryFn: () => apiFetch<{
+      status: string;
+      running_count: number;
+      unhealthy_workflows: Array<{
+        workflow_id: string;
+        workflow_type: string;
+        start_time: string;
+        max_activity_attempts: number;
+        stuck_activity: string | null;
+        issues: string[];
+      }>;
+      checked_at: string;
+    }>('/health/workflows'),
+    refetchInterval: 30_000,
+  });
+}
+
+export function useTerminateStuck() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (threshold?: number) =>
+      apiFetch<{ terminated: string[]; terminated_count: number; errors: string[] }>(
+        `/health/workflows/terminate-stuck${threshold ? `?threshold=${threshold}` : ''}`,
+        { method: 'POST' },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workflow-health'] });
+      queryClient.invalidateQueries({ queryKey: ['health'] });
+      queryClient.invalidateQueries({ queryKey: ['runs'] });
+    },
   });
 }
 

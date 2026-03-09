@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { useRuns, useHealth, useWorkflows, useActivities, useSchedules } from '../hooks/useTapcraft';
+import { useRuns, useHealth, useWorkflowHealth, useTerminateStuck, useWorkflows, useActivities, useSchedules } from '../hooks/useTapcraft';
 import type { Run } from '../types/tapcraft';
 
 const WORKSPACE_ID = 1;
@@ -10,6 +10,8 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data: health } = useHealth();
+  const { data: wfHealth } = useWorkflowHealth();
+  const terminateStuck = useTerminateStuck();
   const { data: runs } = useRuns(WORKSPACE_ID);
   const { data: workflows } = useWorkflows(WORKSPACE_ID);
   const { data: activities } = useActivities(WORKSPACE_ID);
@@ -87,13 +89,28 @@ const Dashboard = () => {
           <p className="text-zinc-400 text-sm font-medium">{format(new Date(), 'MMMM d, yyyy')}</p>
           <h2 className="text-white text-3xl font-bold tracking-tight">{greeting()}</h2>
           <div className="flex items-center gap-2 mt-1">
-            {health?.status === 'ok' ? (
+            {health?.status === 'ok' && wfHealth?.status === 'healthy' ? (
               <>
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
                 <p className="text-emerald-500 text-sm font-medium">All systems nominal</p>
+              </>
+            ) : wfHealth?.status === 'unhealthy' ? (
+              <>
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+                <p className="text-red-400 text-sm font-medium">
+                  {wfHealth.unhealthy_workflows.length} unhealthy workflow{wfHealth.unhealthy_workflows.length !== 1 ? 's' : ''}
+                </p>
+              </>
+            ) : wfHealth?.status === 'degraded' ? (
+              <>
+                <span className="flex h-2 w-2 rounded-full bg-amber-500"></span>
+                <p className="text-amber-500 text-sm font-medium">Workflows degraded</p>
               </>
             ) : (
               <>
@@ -229,6 +246,57 @@ const Dashboard = () => {
           </div>
         </div>
       </section>
+
+      {/* Unhealthy Workflows Alert */}
+      {wfHealth && wfHealth.unhealthy_workflows.length > 0 && (
+        <section className="bg-red-500/5 border border-red-500/20 rounded-xl p-5 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-500/10 rounded-lg text-red-400 border border-red-500/20">
+                <span className="material-symbols-outlined">warning</span>
+              </div>
+              <div>
+                <h3 className="text-red-400 font-bold">
+                  {wfHealth.unhealthy_workflows.length} Stuck Workflow{wfHealth.unhealthy_workflows.length !== 1 ? 's' : ''} Detected
+                </h3>
+                <p className="text-red-400/70 text-sm">
+                  These workflows have activities retrying beyond the safety threshold
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => terminateStuck.mutate(undefined)}
+              disabled={terminateStuck.isPending}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:text-red-300 text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-[16px]">
+                {terminateStuck.isPending ? 'progress_activity' : 'stop_circle'}
+              </span>
+              {terminateStuck.isPending ? 'Terminating...' : 'Terminate All Stuck'}
+            </button>
+          </div>
+          {terminateStuck.isSuccess && (
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-2 text-emerald-400 text-sm">
+              Terminated {terminateStuck.data.terminated_count} workflow{terminateStuck.data.terminated_count !== 1 ? 's' : ''}
+            </div>
+          )}
+          <div className="space-y-2">
+            {wfHealth.unhealthy_workflows.map((wf) => (
+              <div key={wf.workflow_id} className="bg-zinc-900/50 rounded-lg px-4 py-3 flex items-center justify-between">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-white text-sm font-medium font-mono">{wf.workflow_id}</span>
+                  <span className="text-zinc-500 text-xs">{wf.workflow_type}</span>
+                </div>
+                <div className="flex flex-col items-end gap-0.5">
+                  {wf.issues.map((issue, i) => (
+                    <span key={i} className="text-red-400/80 text-xs">{issue}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Recent Activity */}
       <div className="flex flex-col gap-4">

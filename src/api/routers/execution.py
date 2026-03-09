@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 import os
 
+from src.config.defaults import WORKFLOW_EXECUTION_TIMEOUT, WORKFLOW_RUN_TIMEOUT
 from src.db.base import get_db
 from src.services import crud
 
@@ -93,6 +94,8 @@ async def execute_workflow(
             request.input_config,
             id=temporal_workflow_id,
             task_queue=task_queue,
+            execution_timeout=WORKFLOW_EXECUTION_TIMEOUT,
+            run_timeout=WORKFLOW_RUN_TIMEOUT,
         )
 
         # Update run with temporal run ID
