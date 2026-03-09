@@ -182,16 +182,16 @@ const Dashboard = () => {
 
       {/* System Status */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Temporal Server */}
+        {/* Temporal Cloud */}
         <div className="bg-surface-light border border-border-dark rounded-xl p-5 flex flex-col gap-3 hover:border-zinc-500 transition-colors">
           <div className="flex justify-between items-start">
             <div className="p-2 bg-zinc-900 rounded-lg text-white border border-zinc-700">
-              <span className="material-symbols-outlined">terminal</span>
+              <span className="material-symbols-outlined">cloud_queue</span>
             </div>
             <span className={`flex h-2 w-2 rounded-full ${health?.temporal?.connected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-500'}`}></span>
           </div>
           <div>
-            <p className="text-zinc-400 text-sm font-medium mb-1">Temporal Server</p>
+            <p className="text-zinc-400 text-sm font-medium mb-1">Temporal Cloud</p>
             <p className="text-white text-2xl font-bold tracking-tight">
               {health?.temporal?.connected ? 'Connected' : 'Connecting...'}
             </p>
