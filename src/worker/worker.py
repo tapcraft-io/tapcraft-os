@@ -356,8 +356,21 @@ async def main() -> None:
 
         # Run file watcher alongside the worker
         watcher = asyncio.create_task(watch_for_new_workflows(known_files, shutdown_event))
+
+        # Run execution tracker alongside the worker
+        from src.services.execution_tracker import run_execution_tracker
+
+        tracker = asyncio.create_task(run_execution_tracker(shutdown_event))
+
         await shutdown_event.wait()
         watcher.cancel()
+        tracker.cancel()
+
+        # Give the tracker a moment to finish its current cycle
+        try:
+            await asyncio.wait_for(tracker, timeout=5.0)
+        except (asyncio.CancelledError, asyncio.TimeoutError):
+            pass
 
     LOGGER.info("Worker shutting down for reload — Docker will restart it")
 

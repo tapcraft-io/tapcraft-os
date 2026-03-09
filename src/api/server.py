@@ -29,6 +29,7 @@ from src.api.routers import (
     workspaces,
     webhooks,
     oauth,
+    temporal_import,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -47,6 +48,7 @@ app.include_router(secrets.router, dependencies=[Depends(require_api_key)])
 app.include_router(workspaces.router, dependencies=[Depends(require_api_key)])
 app.include_router(webhooks.router, dependencies=[Depends(require_api_key)])
 app.include_router(oauth.router, dependencies=[Depends(require_api_key)])
+app.include_router(temporal_import.router, dependencies=[Depends(require_api_key)])
 
 
 @app.on_event("startup")
