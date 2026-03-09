@@ -128,17 +128,24 @@ class ActivityRegistry:
         """Get all registered activities for the worker."""
         return list(self.activities.values())
 
-    def load_activity_operations_from_db(self, activity_operations: List[Dict[str, Any]]):
+    def load_activity_operations_from_db(
+        self,
+        activity_operations: List[Dict[str, Any]],
+        known_symbols: Optional[set] = None,
+    ):
         """
         Load activity operations from database and register as Temporal activities.
 
         Args:
             activity_operations: List of activity operation dicts with code_symbol, name, etc.
+            known_symbols: Optional set of activity names already registered with the
+                worker. Operations matching these names are skipped to avoid duplicates.
         """
+        known = known_symbols or set()
         for op in activity_operations:
             code_symbol = op.get("code_symbol")
             name = op.get("name")
-            if code_symbol:
+            if code_symbol and code_symbol not in self.activities and code_symbol not in known:
                 self.register_activity_operation(
                     operation_name=name or code_symbol, code_symbol=code_symbol
                 )

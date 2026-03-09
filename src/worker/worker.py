@@ -344,7 +344,18 @@ async def main() -> None:
     activity_registry = ActivityRegistry()
 
     activity_operations = await load_activity_operations_from_db()
-    activity_registry.load_activity_operations_from_db(activity_operations)
+
+    # Collect names of activities already registered (built-in + workspace)
+    # so the registry doesn't create duplicate Temporal registrations
+    known_symbols: set[str] = set()
+    for fn in list(built_in_activities()) + workspace_activities:
+        defn = getattr(fn, "__temporal_activity_definition", None)
+        if defn and hasattr(defn, "name"):
+            known_symbols.add(defn.name)
+
+    activity_registry.load_activity_operations_from_db(
+        activity_operations, known_symbols=known_symbols
+    )
 
     # Get all activities (built-in + workspace-discovered + registry)
     all_activities = (
