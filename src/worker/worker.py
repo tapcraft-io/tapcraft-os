@@ -315,6 +315,29 @@ async def main() -> None:
     workspace_activities = discover_activities_from_workspace()
     LOGGER.info(f"Discovered {len(workspace_activities)} activities from workspace repos")
 
+    # Sync discovered activities to the database so the UI can display them
+    try:
+        from src.db.base import AsyncSessionLocal
+        from src.services import crud
+        from src.services.activity_sync import sync_activities_to_db
+
+        async with AsyncSessionLocal() as db:
+            workspaces = await crud.list_workspaces(db)
+            if workspaces:
+                sync_stats = await sync_activities_to_db(
+                    workspace_id=workspaces[0].id,
+                    workspace_activities=workspace_activities,
+                    builtin_activities=list(built_in_activities()),
+                )
+                LOGGER.info(
+                    "Activity sync: %d activities, %d operations created, %d skipped",
+                    sync_stats["activities_created"],
+                    sync_stats["operations_created"],
+                    sync_stats["skipped"],
+                )
+    except Exception as e:
+        LOGGER.error("Activity sync failed: %s", e)
+
     # Load activity operations from database and register activities
     from src.services.activity_registry import ActivityRegistry
 
