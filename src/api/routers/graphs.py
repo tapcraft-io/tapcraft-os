@@ -18,23 +18,6 @@ from src.services import crud
 router = APIRouter(prefix="/graphs", tags=["graphs"])
 
 
-@router.post("", response_model=GraphResponse, status_code=201)
-async def create_graph(
-    workspace_id: int,
-    owner_type: str = "workflow",
-    owner_id: int = 0,
-    db: AsyncSession = Depends(get_db),
-):
-    """Create a new empty graph."""
-    graph = await crud.create_graph(
-        db=db,
-        workspace_id=workspace_id,
-        owner_type=owner_type,
-        owner_id=owner_id,
-    )
-    return await crud.get_graph(db=db, graph_id=graph.id, load_nodes_edges=True)
-
-
 @router.get("/{graph_id}", response_model=GraphResponse)
 async def get_graph(
     graph_id: int,
