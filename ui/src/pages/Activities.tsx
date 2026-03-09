@@ -79,15 +79,15 @@ const Activities = () => {
             </div>
           ) : (
             <div className="rounded-xl border border-border-dark bg-surface-light/50 overflow-hidden shadow-xl">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+              <div className="overflow-hidden">
+                <table className="w-full text-left border-collapse table-fixed">
                   <thead>
                     <tr className="bg-zinc-900/50 border-b border-border-dark">
-                      <th className="p-4 text-xs font-semibold uppercase tracking-wider text-zinc-500 w-1/4">Name</th>
-                      <th className="p-4 text-xs font-semibold uppercase tracking-wider text-zinc-500 w-1/3">Description</th>
-                      <th className="p-4 text-xs font-semibold uppercase tracking-wider text-zinc-500 w-1/6">Category</th>
-                      <th className="p-4 text-xs font-semibold uppercase tracking-wider text-zinc-500 text-center w-1/12">Ops</th>
-                      <th className="p-4 text-xs font-semibold uppercase tracking-wider text-zinc-500 text-right w-1/6">Action</th>
+                      <th className="p-4 text-xs font-semibold uppercase tracking-wider text-zinc-500" style={{width: '35%'}}>Name</th>
+                      <th className="p-4 text-xs font-semibold uppercase tracking-wider text-zinc-500" style={{width: '30%'}}>Description</th>
+                      <th className="p-4 text-xs font-semibold uppercase tracking-wider text-zinc-500" style={{width: '12%'}}>Category</th>
+                      <th className="p-4 text-xs font-semibold uppercase tracking-wider text-zinc-500 text-center" style={{width: '8%'}}>Ops</th>
+                      <th className="p-4 text-xs font-semibold uppercase tracking-wider text-zinc-500 text-right" style={{width: '15%'}}>Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
@@ -104,7 +104,7 @@ const Activities = () => {
                                 <div className="text-sm font-medium text-white group-hover:text-primary transition-colors">
                                   {activity.name}
                                 </div>
-                                <div className="text-xs text-zinc-500 mt-0.5 font-mono">
+                                <div className="text-xs text-zinc-500 mt-0.5 font-mono truncate">
                                   {activity.code_module_path}
                                 </div>
                               </div>
