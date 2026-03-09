@@ -1,3 +1,13 @@
+## Stage 1: Build the UI
+FROM node:20-slim AS ui-build
+
+WORKDIR /ui
+COPY ui/package.json ui/package-lock.json* ./
+RUN npm ci
+COPY ui/ ./
+RUN npm run build
+
+## Stage 2: Python API + static UI
 FROM python:3.12-slim
 
 ENV POETRY_VERSION=1.7.1 \
@@ -17,6 +27,9 @@ COPY pyproject.toml poetry.lock README.md ./
 RUN poetry install --no-root --no-directory
 
 COPY src src
+
+# Copy built UI into /app/static
+COPY --from=ui-build /ui/dist /app/static
 
 RUN useradd -m appuser
 USER appuser

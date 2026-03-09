@@ -5,9 +5,12 @@ from __future__ import annotations
 import logging
 import os
 from functools import lru_cache
+from pathlib import Path
 from typing import Any, Dict
 
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 # Import database initialization
 from src.db.base import init_db
@@ -35,18 +38,21 @@ LOGGER = logging.getLogger(__name__)
 
 app = FastAPI(title="Tapcraft OS API", version="0.1.0")
 
-# Register routers — all require API key auth
-app.include_router(activities.router, dependencies=[Depends(require_api_key)])
-app.include_router(workflows.router, dependencies=[Depends(require_api_key)])
-app.include_router(graphs.router, dependencies=[Depends(require_api_key)])
-app.include_router(health.router, dependencies=[Depends(require_api_key)])
-app.include_router(schedules.router, dependencies=[Depends(require_api_key)])
-app.include_router(runs.router, dependencies=[Depends(require_api_key)])
-app.include_router(execution.router, dependencies=[Depends(require_api_key)])
-app.include_router(secrets.router, dependencies=[Depends(require_api_key)])
-app.include_router(workspaces.router, dependencies=[Depends(require_api_key)])
-app.include_router(webhooks.router, dependencies=[Depends(require_api_key)])
-app.include_router(oauth.router, dependencies=[Depends(require_api_key)])
+_auth = [Depends(require_api_key)]
+
+# Register routers under both / and /api (SPA calls /api/*, direct calls use /)
+for prefix in ("", "/api"):
+    app.include_router(activities.router, prefix=prefix, dependencies=_auth)
+    app.include_router(workflows.router, prefix=prefix, dependencies=_auth)
+    app.include_router(graphs.router, prefix=prefix, dependencies=_auth)
+    app.include_router(health.router, prefix=prefix, dependencies=_auth)
+    app.include_router(schedules.router, prefix=prefix, dependencies=_auth)
+    app.include_router(runs.router, prefix=prefix, dependencies=_auth)
+    app.include_router(execution.router, prefix=prefix, dependencies=_auth)
+    app.include_router(secrets.router, prefix=prefix, dependencies=_auth)
+    app.include_router(workspaces.router, prefix=prefix, dependencies=_auth)
+    app.include_router(webhooks.router, prefix=prefix, dependencies=_auth)
+    app.include_router(oauth.router, prefix=prefix, dependencies=_auth)
 
 
 @app.on_event("startup")
@@ -96,6 +102,7 @@ def get_config() -> RuntimeConfig:
 
 
 @app.get("/health")
+@app.get("/api/health")
 async def health_check() -> Dict[str, Any]:
     temporal_addr = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
     temporal_connected = False
@@ -144,6 +151,7 @@ async def health_check() -> Dict[str, Any]:
 
 
 @app.get("/auth/validate")
+@app.get("/api/auth/validate")
 async def auth_validate_key(result: dict = Depends(validate_key)) -> dict:
     """UI calls this to check if a stored API key is still valid."""
     return result
@@ -252,12 +260,32 @@ async def webhook_inbound(path: str, request: Request) -> Dict[str, Any]:
 
 
 @app.get("/config", dependencies=[Depends(require_api_key)])
+@app.get("/api/config", dependencies=[Depends(require_api_key)])
 def read_config() -> Dict[str, Any]:
     return get_config().model_dump()
 
 
 @app.put("/config", dependencies=[Depends(require_api_key)])
+@app.put("/api/config", dependencies=[Depends(require_api_key)])
 def update_config(payload: Dict[str, Any]) -> Dict[str, Any]:
     config = get_config()
     config.update(payload)
     return config.model_dump()
+
+
+# --- SPA static file serving (must be last) ---
+
+STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "static"
+
+if STATIC_DIR.is_dir():
+    # Serve static assets (JS, CSS, images)
+    if (STATIC_DIR / "assets").is_dir():
+        app.mount("/assets", StaticFiles(directory=str(STATIC_DIR / "assets")), name="assets")
+
+    @app.get("/{path:path}")
+    async def spa_fallback(path: str):
+        """Serve the SPA index.html for all non-API routes."""
+        file_path = STATIC_DIR / path
+        if file_path.is_file():
+            return FileResponse(str(file_path))
+        return FileResponse(str(STATIC_DIR / "index.html"))
