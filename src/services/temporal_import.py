@@ -108,7 +108,7 @@ async def discover_schedules(client: Client) -> List[Dict[str, Any]]:
     schedules: List[Dict[str, Any]] = []
 
     try:
-        async for handle in client.list_schedules():
+        async for handle in await client.list_schedules():
             schedule_id = handle.id
 
             try:
