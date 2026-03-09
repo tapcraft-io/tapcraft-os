@@ -327,7 +327,7 @@ async def main() -> None:
                 sync_stats = await sync_activities_to_db(
                     workspace_id=workspaces[0].id,
                     workspace_activities=workspace_activities,
-                    builtin_activities=list(built_in_activities()),
+                    builtin_activities=[],
                 )
                 LOGGER.info(
                     "Activity sync: %d activities, %d operations created, %d skipped",
