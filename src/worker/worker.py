@@ -338,6 +338,26 @@ async def main() -> None:
     except Exception as e:
         LOGGER.error("Activity sync failed: %s", e)
 
+    # Build workflow graphs from source code (links workflows to their activities)
+    try:
+        from src.services.graph_builder import build_graphs_for_workspace
+
+        async with AsyncSessionLocal() as db:
+            workspaces = await crud.list_workspaces(db)
+            if workspaces:
+                graph_stats = await build_graphs_for_workspace(
+                    workspace_id=workspaces[0].id,
+                )
+                LOGGER.info(
+                    "Graph build: %d graphs, %d nodes, %d edges, %d skipped",
+                    graph_stats["graphs_built"],
+                    graph_stats["nodes_created"],
+                    graph_stats["edges_created"],
+                    graph_stats["skipped"],
+                )
+    except Exception as e:
+        LOGGER.error("Graph build failed: %s", e)
+
     # Load activity operations from database and register activities
     from src.services.activity_registry import ActivityRegistry
 
