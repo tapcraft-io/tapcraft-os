@@ -22,6 +22,7 @@ import os
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from temporalio.api.enums.v1 import WorkflowExecutionStatus
 from temporalio.client import Client
 
@@ -35,19 +36,19 @@ POLL_INTERVAL_SECONDS = int(os.getenv("EXECUTION_TRACKER_INTERVAL", "30"))
 
 
 def _temporal_status_to_run_status(
-    status: WorkflowExecutionStatus,
+    status: Any,
 ) -> str:
     """Map a Temporal execution status to a Tapcraft run status string."""
-    _MAP = {
-        WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_RUNNING: "running",
-        WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_COMPLETED: "succeeded",
-        WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_FAILED: "failed",
-        WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_CANCELED: "cancelled",
-        WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_TERMINATED: "failed",
-        WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_CONTINUED_AS_NEW: "succeeded",
-        WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_TIMED_OUT: "failed",
+    _MAP: Dict[int, str] = {
+        int(WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_RUNNING): "running",
+        int(WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_COMPLETED): "succeeded",
+        int(WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_FAILED): "failed",
+        int(WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_CANCELED): "cancelled",
+        int(WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_TERMINATED): "failed",
+        int(WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_CONTINUED_AS_NEW): "succeeded",
+        int(WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_TIMED_OUT): "failed",
     }
-    return _MAP.get(status, "failed")
+    return _MAP.get(int(status), "failed")
 
 
 # ---------------------------------------------------------------------------
@@ -56,7 +57,7 @@ def _temporal_status_to_run_status(
 
 
 async def _build_workflow_type_index(
-    db: "AsyncSession",  # noqa: F821
+    db: AsyncSession,
 ) -> Dict[str, Any]:
     """Build a mapping from Temporal workflow type name to DB Workflow object.
 
