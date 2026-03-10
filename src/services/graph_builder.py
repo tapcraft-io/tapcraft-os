@@ -13,8 +13,7 @@ from __future__ import annotations
 
 import ast
 import logging
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 from src.db.base import AsyncSessionLocal
 from src.services import crud
@@ -86,9 +85,6 @@ async def build_graphs_for_workspace(workspace_id: int) -> Dict[str, int]:
         for act in activities:
             for op in act.operations:
                 symbol_to_op[op.code_symbol] = op
-
-        # Find workflow source files
-        from src.worker.worker import WORKSPACE_ROOT, _collect_search_dirs
 
         for wf in workflows:
             # Skip if graph already has nodes

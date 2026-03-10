@@ -1,10 +1,9 @@
 """API routes for workflow health monitoring and guardrails."""
 
 from typing import Any, Dict, Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
-from src.api.auth import require_api_key
 from src.config.defaults import (
     DEFAULT_ACTIVITY_MAX_ATTEMPTS,
     DEFAULT_ACTIVITY_TIMEOUT_SECONDS,

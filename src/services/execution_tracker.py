@@ -20,7 +20,7 @@ import asyncio
 import logging
 import os
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional
 
 from temporalio.api.enums.v1 import WorkflowExecutionStatus
 from temporalio.client import Client

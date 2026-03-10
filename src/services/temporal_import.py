@@ -16,7 +16,6 @@ from typing import Any, Dict, List, Optional, Set
 from temporalio.api.enums.v1 import WorkflowExecutionStatus
 from temporalio.client import Client
 
-from src.db.base import AsyncSessionLocal
 from src.services import crud
 
 LOGGER = logging.getLogger(__name__)

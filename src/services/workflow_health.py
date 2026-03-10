@@ -13,7 +13,7 @@ import os
 from datetime import datetime, timezone
 from typing import Any
 
-from temporalio.api.enums.v1 import EventType, WorkflowExecutionStatus
+from temporalio.api.enums.v1 import EventType
 from temporalio.client import Client
 
 from src.config.defaults import (
