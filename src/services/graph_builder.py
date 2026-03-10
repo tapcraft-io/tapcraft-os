@@ -123,7 +123,7 @@ async def build_graphs_for_workspace(workspace_id: int) -> Dict[str, int]:
             first_node_id: Optional[int] = None
 
             for i, symbol in enumerate(symbols):
-                op = symbol_to_op.get(symbol, None)
+                op: Any = symbol_to_op.get(symbol, None)
                 activity_op_id: Optional[int] = op.id if op else None
 
                 # Use the symbol as label, with human-friendly display
