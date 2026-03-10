@@ -256,11 +256,12 @@ def built_in_activities() -> Iterable[Callable[..., Any]]:
 
 
 RELOAD_CHECK_INTERVAL = int(os.getenv("WORKER_RELOAD_CHECK_INTERVAL", "5"))
+REPO_SYNC_INTERVAL = int(os.getenv("WORKER_REPO_SYNC_INTERVAL", "60"))
 
 
-def snapshot_workspace_files() -> set[str]:
-    """Return a set of activity/workflow .py file paths in the workspace."""
-    files: set[str] = set()
+def snapshot_workspace_files() -> dict[str, float]:
+    """Return a dict of {filepath: mtime} for activity/workflow .py files."""
+    files: dict[str, float] = {}
     if not WORKSPACE_ROOT.exists():
         return files
     for workspace_dir in WORKSPACE_ROOT.glob("workspace_*"):
@@ -269,26 +270,95 @@ def snapshot_workspace_files() -> set[str]:
                 if search_dir.exists():
                     for f in search_dir.glob("*.py"):
                         if f.name != "__init__.py":
-                            files.add(str(f))
+                            files[str(f)] = f.stat().st_mtime
     if GENERATED_PATH.exists():
         for f in GENERATED_PATH.glob("*.py"):
-            files.add(str(f))
+            files[str(f)] = f.stat().st_mtime
     return files
 
 
-async def watch_for_new_workflows(known_files: set[str], shutdown_event: asyncio.Event) -> None:
-    """Poll workspace for new workflow/activity files; signal shutdown when found."""
+async def watch_for_changes(known_files: dict[str, float], shutdown_event: asyncio.Event) -> None:
+    """Poll workspace for new or modified workflow/activity files; signal shutdown when found."""
     while not shutdown_event.is_set():
         await asyncio.sleep(RELOAD_CHECK_INTERVAL)
         current = snapshot_workspace_files()
-        new_files = current - known_files
-        if new_files:
+        new_files = set(current) - set(known_files)
+        modified_files = [
+            f for f in current
+            if f in known_files and current[f] != known_files[f]
+        ]
+        if new_files or modified_files:
+            changes = [Path(f).name for f in (new_files | set(modified_files))]
             LOGGER.info(
-                f"Detected {len(new_files)} new file(s): "
-                f"{[Path(f).name for f in new_files]} — restarting worker to register them"
+                "Detected %d changed file(s): %s — restarting worker to reload",
+                len(changes), changes,
             )
             shutdown_event.set()
             return
+
+
+async def auto_sync_repos(shutdown_event: asyncio.Event) -> None:
+    """Periodically check upstream repos for changes and pull if ahead.
+
+    Runs git fetch + rev comparison every REPO_SYNC_INTERVAL seconds.
+    If upstream has new commits, pulls them — the file watcher will then
+    detect the changed files and trigger a worker restart.
+    """
+    while not shutdown_event.is_set():
+        await asyncio.sleep(REPO_SYNC_INTERVAL)
+        if not WORKSPACE_ROOT.exists():
+            continue
+        for workspace_dir in WORKSPACE_ROOT.glob("workspace_*"):
+            repo_dir = workspace_dir / "repo"
+            if not (repo_dir / ".git").is_dir():
+                continue
+            try:
+                # Fetch latest refs from origin
+                proc = await asyncio.create_subprocess_exec(
+                    "git", "fetch", "--quiet",
+                    cwd=str(repo_dir),
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                await proc.communicate()
+                if proc.returncode != 0:
+                    continue
+
+                # Compare local HEAD with origin
+                proc = await asyncio.create_subprocess_exec(
+                    "git", "rev-parse", "HEAD", "@{u}",
+                    cwd=str(repo_dir),
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, _ = await proc.communicate()
+                if proc.returncode != 0:
+                    continue
+
+                refs = stdout.decode().strip().split("\n")
+                if len(refs) != 2 or refs[0] == refs[1]:
+                    continue  # Already up to date
+
+                LOGGER.info(
+                    "Upstream changes detected in %s (local=%s, remote=%s) — pulling",
+                    workspace_dir.name, refs[0][:8], refs[1][:8],
+                )
+                proc = await asyncio.create_subprocess_exec(
+                    "git", "pull", "--ff-only",
+                    cwd=str(repo_dir),
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, stderr = await proc.communicate()
+                if proc.returncode == 0:
+                    LOGGER.info("Pull successful for %s", workspace_dir.name)
+                else:
+                    LOGGER.warning(
+                        "Pull failed for %s: %s",
+                        workspace_dir.name, stderr.decode().strip(),
+                    )
+            except Exception:
+                LOGGER.exception("Auto-sync failed for %s", workspace_dir.name)
 
 
 async def main() -> None:
@@ -393,7 +463,7 @@ async def main() -> None:
     except Exception as e:
         LOGGER.error("Schedule reconciliation failed: %s", e)
 
-    # Snapshot current files so we can detect new ones
+    # Snapshot current files so we can detect new or modified ones
     known_files = snapshot_workspace_files()
     shutdown_event = asyncio.Event()
 
@@ -406,10 +476,14 @@ async def main() -> None:
     ):
         LOGGER.info(f"Worker started on task queue '{TASK_QUEUE}'")
         LOGGER.info(f"Registered workflows: {[w.__name__ for w in all_workflows]}")
-        LOGGER.info(f"Watching workspace for new files (every {RELOAD_CHECK_INTERVAL}s)")
+        LOGGER.info(f"Watching workspace for changes (every {RELOAD_CHECK_INTERVAL}s)")
+        LOGGER.info(f"Auto-syncing repos from upstream (every {REPO_SYNC_INTERVAL}s)")
 
         # Run file watcher alongside the worker
-        watcher = asyncio.create_task(watch_for_new_workflows(known_files, shutdown_event))
+        watcher = asyncio.create_task(watch_for_changes(known_files, shutdown_event))
+
+        # Run repo auto-sync alongside the worker
+        syncer = asyncio.create_task(auto_sync_repos(shutdown_event))
 
         # Run execution tracker alongside the worker
         from src.services.execution_tracker import run_execution_tracker
@@ -418,13 +492,15 @@ async def main() -> None:
 
         await shutdown_event.wait()
         watcher.cancel()
+        syncer.cancel()
         tracker.cancel()
 
-        # Give the tracker a moment to finish its current cycle
-        try:
-            await asyncio.wait_for(tracker, timeout=5.0)
-        except (asyncio.CancelledError, asyncio.TimeoutError):
-            pass
+        # Give background tasks a moment to finish their current cycle
+        for task in (tracker, syncer):
+            try:
+                await asyncio.wait_for(task, timeout=5.0)
+            except (asyncio.CancelledError, asyncio.TimeoutError):
+                pass
 
     LOGGER.info("Worker shutting down for reload — Docker will restart it")
 
