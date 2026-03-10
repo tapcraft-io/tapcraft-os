@@ -60,5 +60,6 @@ async def platform_defaults() -> Dict[str, Any]:
         "default_activity_timeout_seconds": DEFAULT_ACTIVITY_TIMEOUT_SECONDS,
         "max_activity_retry_attempts": MAX_ACTIVITY_RETRY_ATTEMPTS,
         "stuck_activity_threshold": STUCK_ACTIVITY_THRESHOLD,
-        "long_running_workflow_threshold_hours": LONG_RUNNING_WORKFLOW_THRESHOLD.total_seconds() / 3600,
+        "long_running_workflow_threshold_hours": LONG_RUNNING_WORKFLOW_THRESHOLD.total_seconds()
+        / 3600,
     }

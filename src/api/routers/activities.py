@@ -149,7 +149,7 @@ async def get_activity_code(
             f"Activity: {activity.name}",
             f"Module: {activity.code_module_path}",
             "",
-            f'{activity.description or "No description."}',
+            f"{activity.description or 'No description.'}",
             "",
             "This activity is registered in the worker via ActivityRegistry.",
             "Operations are implemented as Temporal activity stubs.",
@@ -176,7 +176,7 @@ async def get_activity_code(
                         lines.append("# Config schema:")
                         for k, v in props.items():
                             req = " (required)" if k in required else ""
-                            lines.append(f'#   {k}: {v.get("type", "any")}{req}')
+                            lines.append(f"#   {k}: {v.get('type', 'any')}{req}")
                 except Exception:
                     pass
             lines.append("")

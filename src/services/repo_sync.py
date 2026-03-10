@@ -109,7 +109,7 @@ async def clone_or_pull(workspace: Workspace, db: AsyncSession) -> Tuple[str, Op
         else:
             # Shallow clone
             repo_path.parent.mkdir(parents=True, exist_ok=True)
-            LOGGER.info(f"Cloning {workspace.repo_url} (branch={branch}) " f"into {repo_path}")
+            LOGGER.info(f"Cloning {workspace.repo_url} (branch={branch}) into {repo_path}")
             proc = await asyncio.create_subprocess_exec(
                 "git",
                 "clone",

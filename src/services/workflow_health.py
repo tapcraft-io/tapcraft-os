@@ -53,14 +53,16 @@ async def get_workflow_health() -> dict[str, Any]:
             # Check if workflow has been running too long
             if wf.start_time:
                 start = wf.start_time
-                if hasattr(start, 'ToDatetime'):
+                if hasattr(start, "ToDatetime"):
                     start = start.ToDatetime().replace(tzinfo=timezone.utc)
                 elif start.tzinfo is None:
                     start = start.replace(tzinfo=timezone.utc)
                 duration = now - start
                 if duration > LONG_RUNNING_WORKFLOW_THRESHOLD:
                     hours = duration.total_seconds() / 3600
-                    issues.append(f"running for {hours:.1f}h (threshold: {LONG_RUNNING_WORKFLOW_THRESHOLD.total_seconds() / 3600:.0f}h)")
+                    issues.append(
+                        f"running for {hours:.1f}h (threshold: {LONG_RUNNING_WORKFLOW_THRESHOLD.total_seconds() / 3600:.0f}h)"
+                    )
 
             # Fetch activity history to check for stuck retries
             try:
@@ -77,7 +79,8 @@ async def get_workflow_health() -> dict[str, Any]:
                             for prev in history.events:
                                 if (
                                     prev.event_id == attrs.scheduled_event_id
-                                    and prev.event_type == EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED
+                                    and prev.event_type
+                                    == EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED
                                 ):
                                     stuck_activity = prev.activity_task_scheduled_event_attributes.activity_type.name
                                     break
@@ -90,14 +93,18 @@ async def get_workflow_health() -> dict[str, Any]:
                 LOGGER.debug("Could not fetch history for %s: %s", wf.id, e)
 
             if issues:
-                unhealthy.append({
-                    "workflow_id": wf.id,
-                    "workflow_type": wf.workflow_type,
-                    "start_time": wf.start_time.isoformat() if hasattr(wf.start_time, 'isoformat') else str(wf.start_time),
-                    "max_activity_attempts": max_attempts,
-                    "stuck_activity": stuck_activity,
-                    "issues": issues,
-                })
+                unhealthy.append(
+                    {
+                        "workflow_id": wf.id,
+                        "workflow_type": wf.workflow_type,
+                        "start_time": wf.start_time.isoformat()
+                        if hasattr(wf.start_time, "isoformat")
+                        else str(wf.start_time),
+                        "max_activity_attempts": max_attempts,
+                        "stuck_activity": stuck_activity,
+                        "issues": issues,
+                    }
+                )
 
     except Exception as e:
         LOGGER.error("Failed to list workflows: %s", e)
@@ -156,7 +163,8 @@ async def terminate_stuck_workflows(
                     terminated.append(wf.id)
                     LOGGER.info(
                         "Terminated stuck workflow %s (max attempts: %d)",
-                        wf.id, max_attempts,
+                        wf.id,
+                        max_attempts,
                     )
 
             except Exception as e:

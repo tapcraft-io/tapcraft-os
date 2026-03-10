@@ -44,14 +44,15 @@ def extract_activity_symbols(source_code: str) -> List[str]:
 
         # Match: workflow.execute_activity(...)
         func = node.func
-        if not (
-            isinstance(func, ast.Attribute)
-            and func.attr == "execute_activity"
-        ):
+        if not (isinstance(func, ast.Attribute) and func.attr == "execute_activity"):
             continue
 
         # First argument should be a string literal (the activity name)
-        if node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
+        if (
+            node.args
+            and isinstance(node.args[0], ast.Constant)
+            and isinstance(node.args[0].value, str)
+        ):
             symbol = node.args[0].value
             if symbol not in seen:
                 symbols.append(symbol)
@@ -156,9 +157,7 @@ async def build_graphs_for_workspace(workspace_id: int) -> Dict[str, int]:
 
             # Set entry node
             if first_node_id:
-                await crud.update_graph(
-                    db=db, graph_id=graph_id, entry_node_id=first_node_id
-                )
+                await crud.update_graph(db=db, graph_id=graph_id, entry_node_id=first_node_id)
 
             stats["graphs_built"] += 1
             LOGGER.info(

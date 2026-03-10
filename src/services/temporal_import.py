@@ -143,18 +143,18 @@ async def discover_schedules(client: Client) -> List[Dict[str, Any]]:
                     if last_action.scheduled_at:
                         last_action_time = last_action.scheduled_at
                 if info.next_action_times:
-                    next_action_times = [
-                        t.isoformat() for t in info.next_action_times
-                    ]
+                    next_action_times = [t.isoformat() for t in info.next_action_times]
 
-            schedules.append({
-                "schedule_id": schedule_id,
-                "workflow_type": workflow_type,
-                "cron_expressions": cron_expressions,
-                "paused": paused,
-                "last_action_time": last_action_time,
-                "next_action_times": next_action_times,
-            })
+            schedules.append(
+                {
+                    "schedule_id": schedule_id,
+                    "workflow_type": workflow_type,
+                    "cron_expressions": cron_expressions,
+                    "paused": paused,
+                    "last_action_time": last_action_time,
+                    "next_action_times": next_action_times,
+                }
+            )
 
     except Exception as exc:
         LOGGER.error("Failed to list schedules from Temporal: %s", exc)
@@ -185,9 +185,7 @@ async def _backfill_runs(
     count = 0
 
     try:
-        async for wf in client.list_workflows(
-            query=f"WorkflowType = '{workflow_type}'"
-        ):
+        async for wf in client.list_workflows(query=f"WorkflowType = '{workflow_type}'"):
             if count >= limit:
                 break
             count += 1
@@ -292,12 +290,14 @@ async def import_all(
             # Already imported — record for schedule linking and skip
             type_to_db_workflow[wf_type] = existing_slugs[slug]
             summary["workflows_skipped"] += 1
-            summary["workflows"].append({
-                "workflow_type": wf_type,
-                "slug": slug,
-                "status": "skipped",
-                "reason": "already exists",
-            })
+            summary["workflows"].append(
+                {
+                    "workflow_type": wf_type,
+                    "slug": slug,
+                    "status": "skipped",
+                    "reason": "already exists",
+                }
+            )
             continue
 
         try:
@@ -333,13 +333,15 @@ async def import_all(
             existing_slugs[slug] = workflow
 
             summary["workflows_created"] += 1
-            summary["workflows"].append({
-                "workflow_type": wf_type,
-                "slug": slug,
-                "workflow_id": workflow.id,
-                "graph_id": graph.id,
-                "status": "created",
-            })
+            summary["workflows"].append(
+                {
+                    "workflow_type": wf_type,
+                    "slug": slug,
+                    "workflow_id": workflow.id,
+                    "graph_id": graph.id,
+                    "status": "created",
+                }
+            )
 
             LOGGER.info(
                 "Imported workflow type '%s' as workflow id=%d slug=%s",
@@ -371,11 +373,13 @@ async def import_all(
 
         if schedule_name in existing_schedule_names:
             summary["schedules_skipped"] += 1
-            summary["schedules"].append({
-                "temporal_schedule_id": temporal_sched_id,
-                "status": "skipped",
-                "reason": "already exists",
-            })
+            summary["schedules"].append(
+                {
+                    "temporal_schedule_id": temporal_sched_id,
+                    "status": "skipped",
+                    "reason": "already exists",
+                }
+            )
             continue
 
         # Link to the DB workflow by type
@@ -387,12 +391,14 @@ async def import_all(
             )
             LOGGER.warning(msg)
             summary["errors"].append(msg)
-            summary["schedules"].append({
-                "temporal_schedule_id": temporal_sched_id,
-                "workflow_type": wf_type,
-                "status": "skipped",
-                "reason": "no matching workflow",
-            })
+            summary["schedules"].append(
+                {
+                    "temporal_schedule_id": temporal_sched_id,
+                    "workflow_type": wf_type,
+                    "status": "skipped",
+                    "reason": "no matching workflow",
+                }
+            )
             continue
 
         cron_expr = cron_list[0] if cron_list else "0 * * * *"
@@ -424,14 +430,16 @@ async def import_all(
             await db.refresh(schedule)
 
             summary["schedules_created"] += 1
-            summary["schedules"].append({
-                "temporal_schedule_id": temporal_sched_id,
-                "schedule_id": schedule.id,
-                "workflow_type": wf_type,
-                "cron": cron_expr,
-                "enabled": not paused,
-                "status": "created",
-            })
+            summary["schedules"].append(
+                {
+                    "temporal_schedule_id": temporal_sched_id,
+                    "schedule_id": schedule.id,
+                    "workflow_type": wf_type,
+                    "cron": cron_expr,
+                    "enabled": not paused,
+                    "status": "created",
+                }
+            )
 
             LOGGER.info(
                 "Imported schedule '%s' (cron=%s, enabled=%s) -> schedule id=%d",

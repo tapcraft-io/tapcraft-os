@@ -45,7 +45,7 @@ class TemporalService:
         handle = await client.start_workflow(
             workflow_ref,
             arg=args,
-            id=f"{workflow_ref}-{int(time.time()*1000)}",
+            id=f"{workflow_ref}-{int(time.time() * 1000)}",
             task_queue=self._config.task_queue,
         )
         return handle.id

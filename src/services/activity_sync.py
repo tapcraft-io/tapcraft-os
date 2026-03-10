@@ -135,9 +135,7 @@ async def sync_activities_to_db(
                         stats["operations_created"] += 1
                         existing_symbols.add(symbol)
                     except Exception as exc:
-                        LOGGER.warning(
-                            "Failed to create operation %s: %s", symbol, exc
-                        )
+                        LOGGER.warning("Failed to create operation %s: %s", symbol, exc)
                 continue
 
             # Create new Activity
@@ -170,9 +168,7 @@ async def sync_activities_to_db(
                         stats["operations_created"] += 1
                         existing_symbols.add(symbol)
                     except Exception as exc:
-                        LOGGER.warning(
-                            "Failed to create operation %s: %s", symbol, exc
-                        )
+                        LOGGER.warning("Failed to create operation %s: %s", symbol, exc)
 
                 LOGGER.info(
                     "Synced activity '%s' (%d operations) from %s",

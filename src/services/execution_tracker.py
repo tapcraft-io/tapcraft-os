@@ -96,9 +96,7 @@ async def sync_completed_executions(client: Client) -> Dict[str, int]:
         # Collect existing tracked temporal_workflow_ids
         all_runs = []
         for wf in type_index.values():
-            runs = await crud.list_runs(
-                db=db, workspace_id=wf.workspace_id, workflow_id=wf.id
-            )
+            runs = await crud.list_runs(db=db, workspace_id=wf.workspace_id, workflow_id=wf.id)
             all_runs.extend(runs)
 
         tracked_ids: Dict[str, Any] = {}
@@ -135,7 +133,10 @@ async def sync_completed_executions(client: Client) -> Dict[str, int]:
                     if wf.id in tracked_ids:
                         # Update existing run if status changed
                         existing_run = tracked_ids[wf.id]
-                        if existing_run.status in ("queued", "running") and new_status != existing_run.status:
+                        if (
+                            existing_run.status in ("queued", "running")
+                            and new_status != existing_run.status
+                        ):
                             try:
                                 await crud.update_run(
                                     db=db,
@@ -183,15 +184,11 @@ async def sync_completed_executions(client: Client) -> Dict[str, int]:
                             tracked_ids[wf.id] = run
                             stats["created"] += 1
                         except Exception as exc:
-                            LOGGER.debug(
-                                "Failed to create run for %s: %s", wf.id, exc
-                            )
+                            LOGGER.debug("Failed to create run for %s: %s", wf.id, exc)
                             stats["errors"] += 1
 
             except Exception as exc:
-                LOGGER.warning(
-                    "Failed to list workflows with query '%s': %s", query, exc
-                )
+                LOGGER.warning("Failed to list workflows with query '%s': %s", query, exc)
 
     return stats
 
@@ -254,9 +251,7 @@ async def sync_schedule_timing(client: Client) -> int:
                     updated += 1
 
             except Exception as exc:
-                LOGGER.debug(
-                    "Failed to sync timing for schedule %d: %s", sched.id, exc
-                )
+                LOGGER.debug("Failed to sync timing for schedule %d: %s", sched.id, exc)
 
     return updated
 
@@ -275,9 +270,7 @@ async def run_execution_tracker(shutdown_event: asyncio.Event) -> None:
     Args:
         shutdown_event: Set this event to stop the tracker gracefully.
     """
-    LOGGER.info(
-        "Execution tracker starting (poll interval: %ds)", POLL_INTERVAL_SECONDS
-    )
+    LOGGER.info("Execution tracker starting (poll interval: %ds)", POLL_INTERVAL_SECONDS)
 
     while not shutdown_event.is_set():
         try:
@@ -301,9 +294,7 @@ async def run_execution_tracker(shutdown_event: asyncio.Event) -> None:
 
         # Wait for the poll interval or until shutdown is requested
         try:
-            await asyncio.wait_for(
-                shutdown_event.wait(), timeout=POLL_INTERVAL_SECONDS
-            )
+            await asyncio.wait_for(shutdown_event.wait(), timeout=POLL_INTERVAL_SECONDS)
             # If we get here, shutdown was requested
             break
         except asyncio.TimeoutError:
