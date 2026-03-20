@@ -352,9 +352,8 @@ async def tapcraft_run_workflow(
         # Start on Temporal
         try:
             client = await _get_temporal_client()
-            module_path, class_name = wf.entrypoint_symbol.rsplit(".", 1)
-            mod = importlib.import_module(module_path)
-            workflow_class = getattr(mod, class_name)
+            from src.services.workflow_resolver import resolve_workflow_class
+            workflow_class = resolve_workflow_class(wf.entrypoint_symbol)
 
             task_queue = os.getenv("TASK_QUEUE", "default")
             await client.start_workflow(
@@ -582,9 +581,8 @@ async def tapcraft_retry_run(run_id: int, input_config: dict | None = None) -> s
 
         try:
             client = await _get_temporal_client()
-            module_path, class_name = wf.entrypoint_symbol.rsplit(".", 1)
-            mod = importlib.import_module(module_path)
-            workflow_class = getattr(mod, class_name)
+            from src.services.workflow_resolver import resolve_workflow_class
+            workflow_class = resolve_workflow_class(wf.entrypoint_symbol)
             task_queue = os.getenv("TASK_QUEUE", "default")
 
             await client.start_workflow(

@@ -66,21 +66,11 @@ async def execute_workflow(
 
         # Parse entrypoint to get workflow class
         # Format: workspace.workspace_N.workflows.module.ClassName
-        module_path, class_name = workflow.entrypoint_symbol.rsplit(".", 1)
-
-        # Import the workflow class
-        import importlib
-
-        if not module_path.startswith("workspace."):
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid module path: only workspace modules are allowed",
-            )
+        from src.services.workflow_resolver import resolve_workflow_class
 
         try:
-            module = importlib.import_module(module_path)
-            workflow_class = getattr(module, class_name)
-        except (ImportError, AttributeError) as e:
+            workflow_class = resolve_workflow_class(workflow.entrypoint_symbol)
+        except (ValueError, ImportError, AttributeError) as e:
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to import workflow {workflow.entrypoint_symbol}: {str(e)}",

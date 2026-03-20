@@ -223,9 +223,8 @@ async def webhook_inbound(path: str, request: Request) -> Dict[str, Any]:
             temporal_address = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
             client = await Client.connect(temporal_address)
 
-            module_path, class_name = workflow.entrypoint_symbol.rsplit(".", 1)
-            module = importlib.import_module(module_path)
-            workflow_class = getattr(module, class_name)
+            from src.services.workflow_resolver import resolve_workflow_class
+            workflow_class = resolve_workflow_class(workflow.entrypoint_symbol)
 
             task_queue = os.getenv("TASK_QUEUE", "default")
             await client.start_workflow(

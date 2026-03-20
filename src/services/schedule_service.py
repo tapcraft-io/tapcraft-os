@@ -23,6 +23,9 @@ LOGGER = logging.getLogger(__name__)
 TEMPORAL_ADDRESS = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
 TASK_QUEUE = os.getenv("TASK_QUEUE", "default")
 
+
+from src.services.workflow_resolver import resolve_workflow_class as _resolve_workflow_class
+
 # Standard 5-field cron regex (minute hour dom month dow), allowing special chars
 _CRON_RE = re.compile(
     r"^(@(annually|yearly|monthly|weekly|daily|hourly|reboot)"
@@ -84,13 +87,9 @@ async def create_temporal_schedule(
     Returns:
         The Temporal schedule ID.
     """
-    import importlib
-
     client = await _get_client()
 
-    module_path, class_name = workflow_entrypoint.rsplit(".", 1)
-    module = importlib.import_module(module_path)
-    workflow_class = getattr(module, class_name)
+    workflow_class = _resolve_workflow_class(workflow_entrypoint)
 
     temporal_id = _schedule_id(schedule_id)
 
@@ -120,14 +119,10 @@ async def update_temporal_schedule(
     input_config: dict | None = None,
 ) -> None:
     """Update an existing Temporal schedule."""
-    import importlib
-
     client = await _get_client()
     handle = client.get_schedule_handle(_schedule_id(schedule_id))
 
-    module_path, class_name = workflow_entrypoint.rsplit(".", 1)
-    module = importlib.import_module(module_path)
-    workflow_class = getattr(module, class_name)
+    workflow_class = _resolve_workflow_class(workflow_entrypoint)
 
     temporal_id = _schedule_id(schedule_id)
 
