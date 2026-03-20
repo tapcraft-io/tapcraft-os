@@ -18,7 +18,8 @@ def resolve_workflow_class(entrypoint: str):
         return getattr(module, class_name)
 
     # Bare class name — search loaded modules for a Temporal workflow class
-    for mod in sys.modules.values():
+    # Copy values to avoid "dictionary changed size during iteration"
+    for mod in list(sys.modules.values()):
         try:
             cls = getattr(mod, entrypoint, None)
             if cls is not None and inspect.isclass(cls) and hasattr(cls, "__temporal_workflow_definition"):
