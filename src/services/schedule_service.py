@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
 import os
 import re
+from typing import Any
 
 from temporalio.client import (
     Client,
@@ -68,6 +70,40 @@ async def _get_client() -> Client:
     return await Client.connect(TEMPORAL_ADDRESS)
 
 
+def _workflow_takes_args(workflow_class: Any) -> bool:
+    """Return True if the workflow's run() method accepts parameters beyond self."""
+    try:
+        sig = inspect.signature(workflow_class.run)
+    except (ValueError, TypeError):
+        return True
+    return any(p.name != "self" for p in sig.parameters.values())
+
+
+def _build_schedule_action(
+    workflow_class: Any,
+    temporal_id: str,
+    input_config: dict | None,
+) -> ScheduleActionStartWorkflow:
+    """Build a ScheduleActionStartWorkflow, omitting args when the workflow takes none.
+
+    Temporal's ScheduleActionStartWorkflow forwards positional args to the workflow's
+    run() method. Passing an input dict to a workflow that declares ``run(self)``
+    raises ``TypeError: run() takes 1 positional argument but 2 were given`` at
+    activation time. Inspect the signature so no-arg workflows get no args.
+    """
+    kwargs: dict[str, Any] = dict(
+        id=f"scheduled-{temporal_id}-{{{{.ScheduledTime}}}}",
+        task_queue=TASK_QUEUE,
+        execution_timeout=WORKFLOW_EXECUTION_TIMEOUT,
+        run_timeout=WORKFLOW_RUN_TIMEOUT,
+    )
+    if _workflow_takes_args(workflow_class):
+        return ScheduleActionStartWorkflow(
+            workflow_class.run, input_config or {}, **kwargs
+        )
+    return ScheduleActionStartWorkflow(workflow_class.run, **kwargs)
+
+
 async def create_temporal_schedule(
     schedule_id: int,
     workflow_entrypoint: str,
@@ -94,14 +130,7 @@ async def create_temporal_schedule(
     temporal_id = _schedule_id(schedule_id)
 
     schedule = Schedule(
-        action=ScheduleActionStartWorkflow(
-            workflow_class.run,
-            input_config or {},
-            id=f"scheduled-{temporal_id}-{{{{.ScheduledTime}}}}",
-            task_queue=TASK_QUEUE,
-            execution_timeout=WORKFLOW_EXECUTION_TIMEOUT,
-            run_timeout=WORKFLOW_RUN_TIMEOUT,
-        ),
+        action=_build_schedule_action(workflow_class, temporal_id, input_config),
         spec=ScheduleSpec(cron_expressions=[cron]),
         state=ScheduleState(paused=not enabled),
     )
@@ -128,13 +157,8 @@ async def update_temporal_schedule(
 
     def _updater(input: ScheduleUpdateInput) -> ScheduleUpdate:
         existing = input.description.schedule
-        existing.action = ScheduleActionStartWorkflow(
-            workflow_class.run,
-            input_config or {},
-            id=f"scheduled-{temporal_id}-{{{{.ScheduledTime}}}}",
-            task_queue=TASK_QUEUE,
-            execution_timeout=WORKFLOW_EXECUTION_TIMEOUT,
-            run_timeout=WORKFLOW_RUN_TIMEOUT,
+        existing.action = _build_schedule_action(
+            workflow_class, temporal_id, input_config
         )
         existing.spec = ScheduleSpec(cron_expressions=[cron])
         existing.state = ScheduleState(paused=not enabled)
@@ -235,18 +259,24 @@ async def reconcile_schedules_from_db() -> int:
                     )
                     continue
 
-                # Check if schedule already exists in Temporal
+                # Reconcile: update the existing schedule (so action/cron changes
+                # in code are applied on restart), or create it if missing.
                 info = await describe_temporal_schedule(sched.id)
-                if info is not None:
-                    continue  # already exists
-
                 try:
-                    await create_temporal_schedule(
-                        schedule_id=sched.id,
-                        workflow_entrypoint=workflow.entrypoint_symbol,
-                        cron=sched.cron,
-                        enabled=True,
-                    )
+                    if info is None:
+                        await create_temporal_schedule(
+                            schedule_id=sched.id,
+                            workflow_entrypoint=workflow.entrypoint_symbol,
+                            cron=sched.cron,
+                            enabled=True,
+                        )
+                    else:
+                        await update_temporal_schedule(
+                            schedule_id=sched.id,
+                            workflow_entrypoint=workflow.entrypoint_symbol,
+                            cron=sched.cron,
+                            enabled=True,
+                        )
                     count += 1
                 except Exception as e:
                     LOGGER.error("Failed to reconcile schedule %d: %s", sched.id, e)
