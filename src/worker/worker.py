@@ -454,14 +454,22 @@ async def main() -> None:
 
     LOGGER.info(f"Registering {len(all_workflows)} workflows and {len(all_activities)} activities")
 
-    # Reconcile DB schedules with Temporal on startup
-    try:
-        from src.services.schedule_service import reconcile_schedules_from_db
+    # Reconcile DB schedules with Temporal on startup.
+    # Disabled by default: schedules are paused by design and the dashboard
+    # triggers workflows on-demand. Set CONFIRM_RECREATE_SCHEDULES=yes to
+    # re-enable boot-time reconciliation.
+    if os.environ.get("CONFIRM_RECREATE_SCHEDULES") == "yes":
+        try:
+            from src.services.schedule_service import reconcile_schedules_from_db
 
-        reconciled = await reconcile_schedules_from_db()
-        LOGGER.info("Schedule reconciliation complete (%d created)", reconciled)
-    except Exception as e:
-        LOGGER.error("Schedule reconciliation failed: %s", e)
+            reconciled = await reconcile_schedules_from_db()
+            LOGGER.info("Schedule reconciliation complete (%d created)", reconciled)
+        except Exception as e:
+            LOGGER.error("Schedule reconciliation failed: %s", e)
+    else:
+        LOGGER.info(
+            "Schedule reconciliation skipped (set CONFIRM_RECREATE_SCHEDULES=yes to enable)"
+        )
 
     # Snapshot current files so we can detect new or modified ones
     known_files = snapshot_workspace_files()
